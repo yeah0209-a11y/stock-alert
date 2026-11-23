@@ -152,6 +152,13 @@ def keep_code(code: str) -> bool:
     return True
 
 
+def clean_name(text):
+    """櫃買中心的名稱會夾帶連結,例如 '聯亞(../../company-detail.html?code=3081)',這裡把它去掉"""
+    text = re.sub(r"<.*?>", "", str(text or ""))
+    text = re.sub(r"\((?:\.\./|/|http)[^)]*\)", "", text)
+    return text.strip()
+
+
 def to_float(x):
     try:
         return float(str(x).replace(",", "").replace("+", ""))
@@ -276,7 +283,7 @@ def load_tpex_disposal(today: date):
             if not s:
                 continue
             out.append({
-                "code": code, "name": re.sub(r"<.*?>", "", cell(i_name)), "market": "上櫃",
+                "code": code, "name": clean_name(cell(i_name)), "market": "上櫃",
                 "announced": str(roc_to_date(cell(i_date)) or ""),
                 "start": str(s), "end": str(e),
                 "reason": cell(i_reason), "measure": cell(i_measure),
@@ -410,7 +417,7 @@ def line_message(data):
 
 
 def send_line(text):
-    token = os.environ.get("LINE_CHANNEL_ACCESS_TOKEN")
+    token = (os.environ.get("LINE_CHANNEL_ACCESS_TOKEN") or "").strip()
     if not token:
         print("[提醒] 沒有設定 LINE_CHANNEL_ACCESS_TOKEN,略過推播")
         return
