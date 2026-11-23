@@ -110,6 +110,7 @@ const TABS = [
 ];
 let DATA = null, current = localStorageGet("tab") || "ops";
 let HOLD = null, HOLD_SHA = null, CLOSED_SHA = null;   // 從 GitHub 讀到的持股
+let RT = null;   // 盤中即時檢查結果
 const OWNER = location.hostname.endsWith("github.io") ? location.hostname.split(".")[0] : "yeah0209-a11y";
 const REPO = (location.pathname.split("/").filter(Boolean)[0]) || "stock-alert";
 
@@ -127,6 +128,7 @@ async function load() {
     }
     document.getElementById("updated").textContent = "資料日期 " + DATA.date + " ・ 更新 " + DATA.updated;
     await loadHoldings();
+    try { const r2 = await fetch("realtime.json?t=" + Date.now(), { cache: "no-store" }); RT = r2.ok ? await r2.json() : null; } catch (e) { RT = null; }
   } catch (e) {
     document.getElementById("updated").textContent = "資料載入失敗,請稍後再試";
     DATA = DATA || {};
@@ -201,6 +203,10 @@ function renderOps(tab) {
   if (DATA.errors && DATA.errors.length) html += `<div class="err">⚠️ 部分資料抓取失敗:${esc(DATA.errors.join(";"))}</div>`;
   html += `<div class="desc">${tab.desc}</div>`;
   if (!localStorageGet("gh_token")) html += `<div class="note" style="margin:0 4px 10px">💡 要使用「我有買/已賣出」,請先按右上角 ⚙️ 設定 GitHub 金鑰。</div>`;
+  html += `<div class="btns" style="margin:0 0 6px"><button class="btn ghost" id="rtbtn" onclick="runRealtime()">⚡ 即時價差(盤中按)</button></div>`;
+  if (RT && RT.time) html += `<div class="note" style="margin:0 4px 6px">上次即時檢查:${esc(RT.time)}</div>`;
+  if (DATA.cost) { const c = DATA.cost;
+    html += `<div class="note" style="margin:0 4px 6px">💰 國泰 2.8 折、最低 1 元:${c.amount.toLocaleString()} 元一買一賣 = 手續費 ${c.fee_each}×2 + 證交稅 ${c.tax} = ${c.total} 元(${c.pct}%)</div>`; }
   const hs = myHoldings();
   const reds = hs.filter(h => h.level === "red"), yel = hs.filter(h => h.level !== "red");
   html += `<h2>🔴 持股要處理(${reds.length})</h2>`;
@@ -212,6 +218,21 @@ function renderOps(tab) {
   html += yel.length ? yel.map(holdCard).join("") : `<div class="note" style="margin:0 4px">目前沒有持股</div>`;
   html += `<div class="legend">回測:2024/01~2026/11 處置股 ・ 本工具僅供提醒,非投資建議</div>`;
   return html;
+}
+
+function extraLines(x) {
+  let h = "";
+  const rt = RT && RT.quotes ? RT.quotes[x.code] : null;
+  if (rt) {
+    const parts = [];
+    [["odd", "零股"], ["lot", "整股"]].forEach(([k, n]) => { const b = rt[k]; if (b && b.spread_pct != null)
+      parts.push(`${n} 買${b.bid}/賣${b.ask} 價差${b.spread_pct}%${b.spread_pct > 1 ? " ⚠️太大" : " OK"}`); });
+    if (parts.length) h += `<div><b>即時</b>${esc(RT.time.slice(11))} ${esc(parts.join(";"))}</div>`;
+    (RT.notes && RT.notes[x.code] || []).forEach(n => h += `<div class="alert">→ ${esc(n)}</div>`);
+  } else if (x.spread_text) h += `<div><b>收盤價差</b>${esc(x.spread_text)}</div>`;
+  if (x.chips_text) h += `<div><b>籌碼</b>${esc(x.chips_text)}</div>`;
+  if (x.instrument === "現股") h += `<div class="note">零股:9:10 第一次撮合,之後每 5 秒撮合;處置股要先辦預收款券。價差超過 1% 不做,一律掛限價單。</div>`;
+  return h;
 }
 
 function sigCard(x, i) {
@@ -232,6 +253,7 @@ function sigCard(x, i) {
       ${x.target ? `<div><b>停利</b>${esc(x.target)}</div>` : ""}
       <div><b>停損</b>${esc(x.stop)}</div>
       <div><b>出場</b>${esc(x.exit)}</div>
+      ${extraLines(x)}
     </div>
     ${x.held ? "" : `<div class="btns"><button class="btn buy" onclick="openBuy(${x.rank})">我有${side === "空" ? "空" : "買"}</button></div>`}
   </div>`;
@@ -249,6 +271,7 @@ function holdCard(h) {
       ${h.target ? `<div><b>停利</b>${num(h.target)}(掛限價賣單)</div>` : ""}
       ${h.stop_next ? `<div><b>停損</b>明天收盤低於 ${num(h.stop_next)} 就賣</div>` : ""}
       ${h.release ? `<div><b>出關</b>${esc(h.release)} 開盤賣出</div>` : ""}
+      ${extraLines(h)}
     </div>
     ${(h.alerts || []).map(a => `<div class="alert">→ ${esc(a)}</div>`).join("")}
     <div class="btns"><button class="btn sell" onclick="openSell('${esc(h.id)}')">已${h.side === "short" ? "回補" : "賣出"}</button></div>
@@ -329,6 +352,26 @@ async function doSell(id) {
     await ghPut("data/closed.json", { closed }, c.sha, `交易紀錄 ${h.code}`);
     closeModal(); render();
   } catch (e) { alertMsg("❌ 儲存失敗:" + e.message); }
+}
+
+// ---------------- 盤中即時檢查 ----------------
+async function runRealtime() {
+  if (!localStorageGet("gh_token")) return openSettings();
+  const btn = document.getElementById("rtbtn");
+  const before = RT && RT.time;
+  try {
+    btn.textContent = "⏳ 已送出,約 1 分鐘…"; btn.disabled = true;
+    const r = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/actions/workflows/realtime.yml/dispatches`,
+      { method: "POST", headers: { Authorization: "Bearer " + localStorageGet("gh_token"), Accept: "application/vnd.github+json" },
+        body: JSON.stringify({ ref: "main" }) });
+    if (r.status === 403 || r.status === 404) throw new Error("金鑰沒有 Actions 權限(請到 GitHub 把 Actions 設成 Read and write)");
+    if (!r.ok) throw new Error("GitHub 回應 " + r.status);
+    for (let i = 0; i < 18; i++) {           // 最多等 3 分鐘
+      await new Promise(res => setTimeout(res, 10000));
+      try { const g = await ghGet("docs/realtime.json"); if (g.json && g.json.time !== before) { RT = g.json; render(); return; } } catch (e) {}
+    }
+    throw new Error("等太久了,請稍後按「重新整理」");
+  } catch (e) { alertMsg("❌ " + e.message); btn.textContent = "⚡ 即時價差(盤中按)"; btn.disabled = false; }
 }
 
 // ---------------- GitHub API ----------------

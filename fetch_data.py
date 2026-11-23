@@ -45,6 +45,12 @@ MAX_POSITIONS = 10
 # 是否計算操作訊號(做法一/二/三)。False = 只保留原本的處置股雷達
 ENABLE_SIGNALS = True
 
+# 你的券商手續費(國泰證券:電子下單 2.8 折、每筆最低 1 元)
+FEE_DISCOUNT = 0.28
+MIN_FEE = 1
+# App 上試算交易成本用的金額(元)
+COST_EXAMPLE_AMOUNT = 10000
+
 # ★★★ 設定區結束 ★★★
 # ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 
@@ -66,6 +72,7 @@ DATA_JSON = ROOT / "docs" / "data.json"       # 給手機 App 讀
 HISTORY_JSON = ROOT / "data" / "history.json"  # 累積的處置紀錄(用來算剛出關)
 HOLDINGS_JSON = ROOT / "data" / "holdings.json"  # 你在 App 按「我有買」的持股
 INST_JSON = ROOT / "data" / "inst_cache.json"    # 最近幾天的三大法人買賣超
+CHIP_JSON = ROOT / "data" / "chip_cache.json"    # 融資餘額、集保大戶持股(累積才看得到變化)
 
 TW = timezone(timedelta(hours=8))
 
@@ -538,6 +545,18 @@ def build(today: date):
         for h in holdings_st:
             if h["code"] not in levels and h.get("stop_next"):
                 levels[h["code"]] = {"stop_next": h["stop_next"], "release": h["release"], "close": h["close"]}
+        # ---- 委買委賣價差 + 籌碼
+        import market_extra as MX
+        cm = {x["code"]: x["market"] for x in signals}
+        for h in holdings:
+            cm.setdefault(h["code"], h.get("market") or "上市")
+        q = MX.quotes(cm) if (cm and not DEMO_DIR) else {}
+        chip_cache = MX.update_chip_cache(CHIP_JSON, today, get_json) if not DEMO_DIR else {}
+        for x in signals + holdings_st:
+            x["quote"] = q.get(x["code"])
+            x["spread_text"] = MX.spread_verdict(q.get(x["code"]))
+            x["chips"] = MX.chips_for(x["code"], inst, chip_cache)
+            x["chips_text"] = MX.chips_text(x["chips"])
         hist["b_signaled"] = {k: v for k, v in signaled.items()
                               if date.fromisoformat(k.split("_")[1]) >= today - timedelta(days=90)}
 
@@ -560,6 +579,7 @@ def build(today: date):
         "holdings": holdings_st,
         "levels": levels,
         "max_positions": MAX_POSITIONS,
+        "cost": __import__("market_extra").cost_example(COST_EXAMPLE_AMOUNT, FEE_DISCOUNT, MIN_FEE),
         "errors": errors,
         "settings": {"release_soon_days": RELEASE_SOON_DAYS, "just_released_days": JUST_RELEASED_DAYS},
     }
@@ -604,6 +624,10 @@ def line_message(data):
                 lines.append(f"   停利:{x['target']}")
             lines.append(f"   停損:{x['stop']}")
             lines.append(f"   出場:{x['exit']}")
+            if x.get("spread_text"):
+                lines.append(f"   收盤價差:{x['spread_text']}")
+            if x.get("chips_text"):
+                lines.append(f"   籌碼:{x['chips_text']}")
         if len(sig) > 8:
             lines.append(f"…另有 {len(sig) - 8} 檔,請開 App")
     yel = [h for h in data.get("holdings", []) if h["level"] != "red"]
