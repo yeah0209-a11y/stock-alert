@@ -1,18 +1,23 @@
-# 測試期交所個股期清單格式(找出小型個股期)
+# 測試:委買委賣(整股/零股)、融資融券、集保股權分散 的資料格式
 import json, requests
-UA = {"User-Agent": "Mozilla/5.0 (personal backtest)"}
+UA = {"User-Agent": "Mozilla/5.0 (personal use)"}
 out = {}
-for name, url in [("ssf", "https://openapi.taifex.com.tw/v1/SSFLists"),
-                  ("swagger", "https://openapi.taifex.com.tw/swagger.json")]:
+def try_(name, url, params=None, raw=False):
     try:
-        r = requests.get(url, headers=UA, timeout=40)
-        js = r.json()
-        if name == "ssf":
-            out[name] = {"n": len(js), "first": js[:5], "keys": list(js[0].keys()) if js else []}
-            out["ssf_small"] = [x for x in js if any("小型" in str(v) or "100" == str(v).strip() for v in x.values())][:20]
-            out["ssf_all"] = js
-        else:
-            out[name] = [p for p in js.get("paths", {}) if "SSF" in p or "Stock" in p or "Future" in p][:80]
+        r = requests.get(url, params=params, headers=UA, timeout=40)
+        out[name] = {"status": r.status_code, "text": r.text[:2500]}
     except Exception as e:
         out[name] = {"error": str(e)}
+D = "20261120"
+try_("twse_mi_index", "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX", {"date": D, "type": "ALLBUT0999", "response": "json"})
+try_("twse_odd_TWT53U", "https://www.twse.com.tw/rwd/zh/afterTrading/TWT53U", {"date": D, "response": "json"})
+try_("tpex_close_openapi", "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes")
+try_("tpex_odd", "https://www.tpex.org.tw/www/zh-tw/afterTrading/oddLotIntraday", {"date": "2026/11/20", "response": "json"})
+try_("tpex_odd_openapi", "https://www.tpex.org.tw/openapi/v1/tpex_odd_lot_trading")
+try_("twse_margin", "https://www.twse.com.tw/rwd/zh/marginTrading/MI_MARGN", {"date": D, "selectType": "STOCK", "response": "json"})
+try_("tpex_margin", "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_margin_balance")
+try_("tdcc_1_5", "https://opendata.tdcc.com.tw/getOD.ashx", {"id": "1-5"})
+try_("tdcc_openapi", "https://openapi.tdcc.com.tw/v1/opendata/1-5")
+try_("mis_realtime", "https://mis.twse.com.tw/stock/api/getStockInfo.jsp", {"ex_ch": "tse_2330.tw|otc_6140.tw", "json": "1", "delay": "0"})
+try_("mis_odd", "https://mis.twse.com.tw/stock/api/getOddInfo.jsp", {"ex_ch": "tse_2330.tw", "json": "1"})
 open("backtest/results/probe.json", "w", encoding="utf-8").write(json.dumps(out, ensure_ascii=False, indent=1))
