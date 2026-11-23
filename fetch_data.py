@@ -582,6 +582,8 @@ def fmt(x):
 
 def line_message(data):
     lines = [f"📡 處置股雷達 {data['date']}"]
+    if os.environ.get("LINE_PREFIX"):
+        lines.insert(0, os.environ["LINE_PREFIX"])
 
     reds = [h for h in data.get("holdings", []) if h["level"] == "red"]
     if reds:
