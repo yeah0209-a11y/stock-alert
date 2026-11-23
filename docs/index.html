@@ -56,20 +56,47 @@
   .err { background: rgba(255,77,79,.1); border: 1px solid rgba(255,77,79,.3); color: #ffb3b3;
     border-radius: 10px; padding: 8px 12px; font-size: 13px; margin-bottom: 12px; }
   .legend { font-size: 12px; color: var(--muted); text-align: center; margin-top: 16px; }
+  h2 { font-size: 16px; margin: 18px 4px 8px; }
+  .card.op { cursor: default; }
+  .card.red { border-color: rgba(255,77,79,.6); }
+  .card.held { opacity: .7; }
+  .tier { display: inline-block; min-width: 26px; text-align: center; font-weight: 700; border-radius: 6px;
+    padding: 1px 6px; margin-right: 6px; font-size: 13px; }
+  .tier.S { background: #f5a623; color: #111; } .tier.A { background: #7aa7ff; color: #111; } .tier.B { background: #3a3f4b; color: #ddd; }
+  .rank { color: var(--muted); font-size: 13px; margin-right: 4px; }
+  .lines { margin-top: 8px; font-size: 14px; line-height: 1.6; }
+  .lines b { color: var(--muted); font-weight: 500; margin-right: 4px; }
+  .alert { margin-top: 6px; font-size: 14px; color: #ffb3b3; line-height: 1.5; }
+  .note { margin-top: 6px; font-size: 13px; color: #c3c7cf; line-height: 1.5; }
+  .btns { margin-top: 10px; display: flex; gap: 8px; }
+  .btn { flex: 1; border: 0; border-radius: 10px; padding: 9px 0; font-size: 15px; font-weight: 600; }
+  .btn.buy { background: var(--up); color: #fff; } .btn.sell { background: var(--down); color: #08210f; }
+  .btn.ghost { background: var(--chip); color: var(--text); }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: flex-end; z-index: 20; }
+  .modal.on { display: flex; }
+  .sheet { background: var(--panel); width: 100%; border-radius: 16px 16px 0 0; padding: 18px 16px calc(env(safe-area-inset-bottom) + 18px); }
+  .sheet h3 { margin: 0 0 12px; font-size: 17px; }
+  .sheet label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  .sheet input { width: 100%; font-size: 17px; padding: 10px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--text); }
+  .gear { background: none; border: 0; font-size: 18px; margin-left: 6px; }
 </style>
 </head>
 <body>
 <header>
   <div class="top">
     <div><h1>📡 處置股雷達</h1><div class="updated" id="updated">載入中…</div></div>
-    <button class="refresh" onclick="load()">重新整理</button>
+    <div><button class="refresh" onclick="load()">重新整理</button><button class="gear" onclick="openSettings()">⚙️</button></div>
   </div>
   <nav id="tabs"></nav>
 </header>
 <main id="main"></main>
+<div class="modal" id="modal" onclick="if(event.target===this)closeModal()"><div class="sheet" id="sheet"></div></div>
 
 <script>
 const TABS = [
+  { key: "ops", label: "📋 今日操作",
+    desc: "依優先順序:🔴 先處理要出場的持股,再看 🟢 明天可進場的訊號。S=小型個股期、A=現股做法二、B=現股做法一。" },
   { key: "near_disposal", label: "🔥 快進處置",
     desc: "證交所公布的「注意累計次數異常」名單:這些股票再被列為注意股,就可能進入處置。" },
   { key: "releasing_soon", label: "🚪 快出關",
@@ -81,7 +108,10 @@ const TABS = [
   { key: "attention", label: "👀 今日注意",
     desc: "證交所今天公布的注意股與原因。" },
 ];
-let DATA = null, current = localStorageGet("tab") || "near_disposal";
+let DATA = null, current = localStorageGet("tab") || "ops";
+let HOLD = null, HOLD_SHA = null, CLOSED_SHA = null;   // 從 GitHub 讀到的持股
+const OWNER = location.hostname.endsWith("github.io") ? location.hostname.split(".")[0] : "yeah0209-a11y";
+const REPO = (location.pathname.split("/").filter(Boolean)[0]) || "stock-alert";
 
 function localStorageGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function localStorageSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
@@ -96,6 +126,7 @@ async function load() {
       DATA = await r.json();
     }
     document.getElementById("updated").textContent = "資料日期 " + DATA.date + " ・ 更新 " + DATA.updated;
+    await loadHoldings();
   } catch (e) {
     document.getElementById("updated").textContent = "資料載入失敗,請稍後再試";
     DATA = DATA || {};
@@ -104,10 +135,12 @@ async function load() {
 }
 
 function render() {
+  const count = k => k === "ops" ? (DATA.signals || []).length : (DATA[k] || []).length;
   document.getElementById("tabs").innerHTML = TABS.map(t =>
-    `<button class="${t.key === current ? "on" : ""}" onclick="pick('${t.key}')">${t.label}<span class="n">${(DATA[t.key] || []).length}</span></button>`
+    `<button class="${t.key === current ? "on" : ""}" onclick="pick('${t.key}')">${t.label}<span class="n">${count(t.key)}</span></button>`
   ).join("");
   const tab = TABS.find(t => t.key === current);
+  if (current === "ops") { document.getElementById("main").innerHTML = renderOps(tab); return; }
   const items = DATA[current] || [];
   let html = "";
   if (DATA.errors && DATA.errors.length) html += `<div class="err">⚠️ 部分資料抓取失敗:${esc(DATA.errors.join(";"))}</div>`;
@@ -144,6 +177,185 @@ function card(x) {
     <div class="tags">${tags}</div>
     <div class="detail">${detail}</div></a>`;
 }
+
+// ======================================================================
+// 今日操作
+// ======================================================================
+function num(x, d = 2) { return x == null ? "-" : Number(x).toFixed(d); }
+
+function myHoldings() {
+  // 有設定 GitHub 金鑰 → 用即時讀到的持股;沒有 → 用每天 18:40 計算的結果
+  const st = {}; (DATA.holdings || []).forEach(h => st[h.id] = h);
+  if (HOLD == null) return DATA.holdings || [];
+  return HOLD.map(h => {
+    if (st[h.id]) return { ...h, ...st[h.id] };
+    const lv = (DATA.levels || {})[h.code] || {};
+    return { ...h, level: "yellow", alerts: ["剛新增,今晚 18:40 會開始追蹤"],
+      target: h.strategy === "做法一" ? +(h.entry_price * 1.1).toFixed(2) : null,
+      stop_next: h.strategy === "做法一" ? lv.stop_next : null, release: lv.release || h.release_at_buy };
+  });
+}
+
+function renderOps(tab) {
+  let html = "";
+  if (DATA.errors && DATA.errors.length) html += `<div class="err">⚠️ 部分資料抓取失敗:${esc(DATA.errors.join(";"))}</div>`;
+  html += `<div class="desc">${tab.desc}</div>`;
+  if (!localStorageGet("gh_token")) html += `<div class="note" style="margin:0 4px 10px">💡 要使用「我有買/已賣出」,請先按右上角 ⚙️ 設定 GitHub 金鑰。</div>`;
+  const hs = myHoldings();
+  const reds = hs.filter(h => h.level === "red"), yel = hs.filter(h => h.level !== "red");
+  html += `<h2>🔴 持股要處理(${reds.length})</h2>`;
+  html += reds.length ? reds.map(holdCard).join("") : `<div class="note" style="margin:0 4px">沒有需要出場的持股</div>`;
+  const sig = DATA.signals || [];
+  html += `<h2>🟢 明天可進場(${sig.length})</h2>`;
+  html += sig.length ? sig.map(sigCard).join("") : `<div class="note" style="margin:0 4px">今天沒有符合條件的訊號</div>`;
+  html += `<h2>🟡 持有中(${yel.length} / ${DATA.max_positions || 10})</h2>`;
+  html += yel.length ? yel.map(holdCard).join("") : `<div class="note" style="margin:0 4px">目前沒有持股</div>`;
+  html += `<div class="legend">回測:2024/01~2026/11 處置股 ・ 本工具僅供提醒,非投資建議</div>`;
+  return html;
+}
+
+function sigCard(x, i) {
+  const side = x.side === "short" ? "空" : "買";
+  let tags = `<span class="tag ${x.instrument === "小型個股期" ? "f" : ""}">${esc(x.instrument)}${x.small_contract ? " " + esc(x.small_contract) : ""}</span>`;
+  tags += `<span class="tag">${esc(x.market)}</span>`;
+  if (x.second) tags += `<span class="tag hot">第二次處置</span>`;
+  if (x.margin_x) tags += `<span class="tag">保證金 ${x.margin_x} 倍</span>`;
+  if (x.inst5 > 0) tags += `<span class="tag w">法人5日買超</span>`;
+  if (x.held) tags += `<span class="tag w">已持有</span>`;
+  if (x.full) tags += `<span class="tag hot">已滿倉,建議略過</span>`;
+  return `<div class="card op ${x.held || x.full ? "held" : ""}">
+    <div class="row"><div><span class="rank">#${x.rank}</span><span class="tier ${x.tier}">${x.tier}</span><span class="code">${esc(x.code)}</span><span class="name">${esc(x.name)}</span></div>
+      <div class="price"><div class="c">${num(x.close)}</div><div class="p">${esc(x.title)}・${side}</div></div></div>
+    <div class="tags">${tags}</div>
+    <div class="lines">
+      <div><b>進場</b>${esc(x.entry)}</div>
+      ${x.target ? `<div><b>停利</b>${esc(x.target)}</div>` : ""}
+      <div><b>停損</b>${esc(x.stop)}</div>
+      <div><b>出場</b>${esc(x.exit)}</div>
+    </div>
+    ${x.held ? "" : `<div class="btns"><button class="btn buy" onclick="openBuy(${x.rank})">我有${side === "空" ? "空" : "買"}</button></div>`}
+  </div>`;
+}
+
+function holdCard(h) {
+  const pnl = h.pnl_pct != null ? `<span class="${h.pnl_pct > 0 ? "up" : h.pnl_pct < 0 ? "down" : ""}">${h.pnl_pct > 0 ? "+" : ""}${h.pnl_pct}%</span>` : "";
+  return `<div class="card op ${h.level === "red" ? "red" : ""}">
+    <div class="row"><div><span class="code">${esc(h.code)}</span><span class="name">${esc(h.name)}</span></div>
+      <div class="price"><div class="c">${num(h.close)}</div><div class="p">${pnl}</div></div></div>
+    <div class="tags"><span class="tag">${esc(h.strategy)}</span><span class="tag ${h.instrument === "小型個股期" ? "f" : ""}">${esc(h.instrument)}</span>
+      <span class="tag">${h.side === "short" ? "空單" : "多單"}</span></div>
+    <div class="lines">
+      <div><b>進場</b>${esc(h.entry_date)} @ ${num(h.entry_price)}${h.qty ? ` × ${esc(h.qty)}` : ""}</div>
+      ${h.target ? `<div><b>停利</b>${num(h.target)}(掛限價賣單)</div>` : ""}
+      ${h.stop_next ? `<div><b>停損</b>明天收盤低於 ${num(h.stop_next)} 就賣</div>` : ""}
+      ${h.release ? `<div><b>出關</b>${esc(h.release)} 開盤賣出</div>` : ""}
+    </div>
+    ${(h.alerts || []).map(a => `<div class="alert">→ ${esc(a)}</div>`).join("")}
+    <div class="btns"><button class="btn sell" onclick="openSell('${esc(h.id)}')">已${h.side === "short" ? "回補" : "賣出"}</button></div>
+  </div>`;
+}
+
+// ---------------- 視窗 ----------------
+function openModal(html) { document.getElementById("sheet").innerHTML = html; document.getElementById("modal").classList.add("on"); }
+function closeModal() { document.getElementById("modal").classList.remove("on"); }
+
+function openSettings() {
+  const t = localStorageGet("gh_token") || "";
+  openModal(`<h3>⚙️ 設定 GitHub 金鑰</h3>
+    <div class="note">金鑰只存在這支手機上,用來把「我有買/已賣出」寫回你的 GitHub,讓每天晚上的提醒知道你持有哪些股票。</div>
+    <label>Fine-grained token(github_pat_ 開頭)</label>
+    <input id="tok" type="password" value="${esc(t)}" autocomplete="off">
+    <div class="btns"><button class="btn ghost" onclick="closeModal()">取消</button>
+    <button class="btn buy" onclick="saveToken()">儲存並測試</button></div>`);
+}
+async function saveToken() {
+  localStorageSet("gh_token", document.getElementById("tok").value.trim());
+  try { await loadHoldings(true); closeModal(); alertMsg("✅ 金鑰可以使用"); render(); }
+  catch (e) { alertMsg("❌ 金鑰無法使用:" + e.message); }
+}
+function alertMsg(m) { openModal(`<h3>${esc(m)}</h3><div class="btns"><button class="btn ghost" onclick="closeModal()">好</button></div>`); }
+
+function openBuy(rank) {
+  if (!localStorageGet("gh_token")) return openSettings();
+  const x = (DATA.signals || []).find(s => s.rank === rank);
+  const side = x.side === "short" ? "空" : "買";
+  openModal(`<h3>${esc(x.code)} ${esc(x.name)} ・ 我有${side}</h3>
+    <div class="note">${esc(x.title)}・${esc(x.instrument)}</div>
+    <label>成交價</label><input id="f_price" type="number" inputmode="decimal" step="0.01" value="${x.close}">
+    <label>數量(口或張,可不填)</label><input id="f_qty" type="number" inputmode="numeric">
+    <label>成交日期</label><input id="f_date" type="date" value="${x.entry_day}">
+    <div class="btns"><button class="btn ghost" onclick="closeModal()">取消</button>
+    <button class="btn buy" onclick="doBuy(${rank})">確定</button></div>`);
+}
+async function doBuy(rank) {
+  const x = (DATA.signals || []).find(s => s.rank === rank);
+  const price = parseFloat(document.getElementById("f_price").value);
+  if (!(price > 0)) return alertMsg("請輸入成交價");
+  const h = { id: x.code + "_" + Date.now(), code: x.code, name: x.name, market: x.market, strategy: x.strategy,
+    instrument: x.instrument, small_contract: x.small_contract || null, side: x.side,
+    entry_date: document.getElementById("f_date").value, entry_price: price,
+    qty: document.getElementById("f_qty").value || null, release_at_buy: x.release, tier: x.tier };
+  try {
+    await loadHoldings(true);
+    HOLD.push(h);
+    HOLD_SHA = await ghPut("data/holdings.json", { holdings: HOLD }, HOLD_SHA, `我有${x.side === "short" ? "空" : "買"} ${x.code} ${x.name}`);
+    closeModal(); render();
+  } catch (e) { alertMsg("❌ 儲存失敗:" + e.message); }
+}
+
+function openSell(id) {
+  if (!localStorageGet("gh_token")) return openSettings();
+  const h = myHoldings().find(x => x.id === id);
+  openModal(`<h3>${esc(h.code)} ${esc(h.name)} ・ 已${h.side === "short" ? "回補" : "賣出"}</h3>
+    <label>成交價</label><input id="f_price" type="number" inputmode="decimal" step="0.01" value="${h.close ?? ""}">
+    <label>日期</label><input id="f_date" type="date" value="${new Date().toISOString().slice(0, 10)}">
+    <div class="btns"><button class="btn ghost" onclick="closeModal()">取消</button>
+    <button class="btn sell" onclick="doSell('${esc(id)}')">確定</button></div>`);
+}
+async function doSell(id) {
+  const price = parseFloat(document.getElementById("f_price").value);
+  if (!(price > 0)) return alertMsg("請輸入成交價");
+  try {
+    await loadHoldings(true);
+    const h = HOLD.find(x => x.id === id);
+    if (!h) throw new Error("找不到這筆持股(可能已經刪除)");
+    HOLD = HOLD.filter(x => x.id !== id);
+    HOLD_SHA = await ghPut("data/holdings.json", { holdings: HOLD }, HOLD_SHA, `已賣出 ${h.code} ${h.name}`);
+    // 交易紀錄
+    const c = await ghGet("data/closed.json");
+    const closed = (c.json && c.json.closed) || [];
+    const ret = h.side === "short" ? h.entry_price / price - 1 : price / h.entry_price - 1;
+    closed.push({ ...h, exit_date: document.getElementById("f_date").value, exit_price: price, return_pct: +(ret * 100).toFixed(2) });
+    await ghPut("data/closed.json", { closed }, c.sha, `交易紀錄 ${h.code}`);
+    closeModal(); render();
+  } catch (e) { alertMsg("❌ 儲存失敗:" + e.message); }
+}
+
+// ---------------- GitHub API ----------------
+function b64enc(str) { const b = new TextEncoder().encode(str); let s = ""; b.forEach(x => s += String.fromCharCode(x)); return btoa(s); }
+function b64dec(b64) { return new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\n/g, "")), c => c.charCodeAt(0))); }
+async function ghGet(path) {
+  const r = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}?ref=main&t=${Date.now()}`,
+    { headers: { Authorization: "Bearer " + localStorageGet("gh_token"), Accept: "application/vnd.github+json" }, cache: "no-store" });
+  if (r.status === 404) return { json: null, sha: null };
+  if (!r.ok) throw new Error("GitHub 回應 " + r.status);
+  const j = await r.json();
+  return { json: JSON.parse(b64dec(j.content)), sha: j.sha };
+}
+async function ghPut(path, obj, sha, msg) {
+  const body = { message: msg, content: b64enc(JSON.stringify(obj, null, 1)), branch: "main" };
+  if (sha) body.sha = sha;
+  const r = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${path}`,
+    { method: "PUT", headers: { Authorization: "Bearer " + localStorageGet("gh_token"), Accept: "application/vnd.github+json" }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error("GitHub 回應 " + r.status + (r.status === 409 ? "(資料剛被更新,請再按一次)" : ""));
+  return (await r.json()).content.sha;
+}
+async function loadHoldings(strict) {
+  if (!localStorageGet("gh_token")) { HOLD = null; return; }
+  try { const g = await ghGet("data/holdings.json"); HOLD = (g.json && g.json.holdings) || []; HOLD_SHA = g.sha; }
+  catch (e) { if (strict) throw e; HOLD = null; }
+}
+
 
 load();
 </script>

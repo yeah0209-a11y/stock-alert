@@ -39,6 +39,12 @@ SEND_WHEN_EMPTY = False
 # 你額外知道有個股期的股票代號(自動抓期交所名單失敗時會用到)
 EXTRA_SSF_CODES = []
 
+# 最多同時持有幾檔(每檔用 1/10 資金)。持股滿了,B 級訊號會標示「已滿倉,建議略過」
+MAX_POSITIONS = 10
+
+# 是否計算操作訊號(做法一/二/三)。False = 只保留原本的處置股雷達
+ENABLE_SIGNALS = True
+
 # ★★★ 設定區結束 ★★★
 # ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 
@@ -58,6 +64,8 @@ except ImportError:  # 測試模式不需要 requests
 ROOT = Path(__file__).resolve().parent
 DATA_JSON = ROOT / "docs" / "data.json"       # 給手機 App 讀
 HISTORY_JSON = ROOT / "data" / "history.json"  # 累積的處置紀錄(用來算剛出關)
+HOLDINGS_JSON = ROOT / "data" / "holdings.json"  # 你在 App 按「我有買」的持股
+INST_JSON = ROOT / "data" / "inst_cache.json"    # 最近幾天的三大法人買賣超
 
 TW = timezone(timedelta(hours=8))
 
@@ -66,6 +74,10 @@ TWSE_NOTICE = "https://openapi.twse.com.tw/v1/announcement/notice"        # 上�
 TWSE_NOTETRANS = "https://openapi.twse.com.tw/v1/announcement/notetrans"  # 上市 注意累計次數異常(快進處置)
 TWSE_PUNISH = "https://openapi.twse.com.tw/v1/announcement/punish"        # 上市 處置股
 TWSE_DAY_ALL = "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"  # 上市 每日收盤
+TPEX_DAY_ALL = "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes"  # 上櫃 每日收盤
+TWSE_HOLIDAY = "https://openapi.twse.com.tw/v1/holidaySchedule/holidaySchedule"      # 休市日
+TWSE_T86 = "https://www.twse.com.tw/rwd/zh/fund/T86"                                 # 上市 三大法人
+TPEX_INST = "https://www.tpex.org.tw/www/zh-tw/insti/dailyTrade"                     # 上櫃 三大法人
 TPEX_DISPOSAL = "https://www.tpex.org.tw/www/zh-tw/bulletin/disposal"     # 上櫃 處置股(帶日期查詢)
 TAIFEX_SSF = "https://openapi.taifex.com.tw/v1/SSFLists"                  # 期交所 個股期標的
 
@@ -170,7 +182,7 @@ def to_float(x):
 # 抓資料
 # ======================================================================
 def load_prices():
-    """上市股票收盤價與漲跌幅 {代號: {close, chg_pct}}"""
+    """今天上市+上櫃的官方收盤資料 {代號: {close, chg_pct, open, high, low, volume}}"""
     out = {}
     rows = get_json(TWSE_DAY_ALL, "twse_day_all") or []
     for r in rows:
@@ -181,14 +193,46 @@ def load_prices():
         out[r.get("Code", "").strip()] = {
             "close": close,
             "chg_pct": round((chg or 0) / prev * 100, 2) if prev else None,
+            "open": to_float(r.get("OpeningPrice")), "high": to_float(r.get("HighestPrice")),
+            "low": to_float(r.get("LowestPrice")), "volume": to_float(r.get("TradeVolume")),
+        }
+    rows = get_json(TPEX_DAY_ALL, "tpex_day_all") or []
+    for r in rows if isinstance(rows, list) else []:
+        code = str(r.get("SecuritiesCompanyCode") or r.get("Code") or "").strip()
+        close, chg = to_float(r.get("Close")), to_float(r.get("Change"))
+        if not code or close is None or code in out:
+            continue
+        prev = close - (chg or 0)
+        out[code] = {
+            "close": close,
+            "chg_pct": round((chg or 0) / prev * 100, 2) if prev else None,
+            "open": to_float(r.get("Open")), "high": to_float(r.get("High")),
+            "low": to_float(r.get("Low")), "volume": to_float(r.get("TradingShares")),
         }
     return out
 
 
 def load_ssf_codes():
-    """有個股期的股票代號(自動從期交所抓,抓不到就只用 EXTRA_SSF_CODES)"""
-    codes = set(EXTRA_SSF_CODES)
+    return load_ssf_contracts()[0]
+
+
+def load_ssf_contracts():
+    """回傳 (有個股期的代號 set, {代號: 小型個股期契約代號})。
+    期交所清單裡同一檔股票出現兩個契約代號 = 有小型個股期(第二個是小型,例如南電 LYF / 小型南電 QSF)"""
+    from collections import defaultdict
+    contracts = defaultdict(list)
     rows = get_json(TAIFEX_SSF, "taifex_ssf")
+    if isinstance(rows, list):
+        for r in rows:
+            if isinstance(r, dict) and re.fullmatch(r"\d{4}", str(r.get("StockCode", "")).strip()):
+                contracts[str(r["StockCode"]).strip()].append(str(r.get("Contract", "")).strip())
+    small = {k: v[1] for k, v in contracts.items() if len(v) > 1}
+    codes = set(contracts) | set(EXTRA_SSF_CODES) | _old_ssf_codes(rows)
+    return codes, small
+
+
+def _old_ssf_codes(rows):
+    codes = set()
     if isinstance(rows, list):
         for r in rows:
             if not isinstance(r, dict):
@@ -200,6 +244,124 @@ def load_ssf_codes():
                     if re.fullmatch(r"\d{4,6}", v):
                         codes.add(v)
     return codes
+
+
+# ======================================================================
+# 操作訊號需要的資料:休市日、歷史股價、三大法人
+# ======================================================================
+def load_holidays():
+    out = set()
+    rows = get_json(TWSE_HOLIDAY, "twse_holiday") or []
+    for r in rows if isinstance(rows, list) else []:
+        name = str(r.get("Name") or r.get("名稱") or "")
+        if "開始交易" in name or "最後交易" in name:
+            continue
+        d = roc_to_date(r.get("Date") or r.get("日期"))
+        if d:
+            out.add(d)
+    return out
+
+
+def load_history_prices(codes, today, official):
+    """用 yfinance 抓近 8 個月日K,再用今天官方收盤資料補上/覆蓋今天這根"""
+    import pandas as pd
+    if DEMO_DIR or not codes:
+        return {}
+    try:
+        import yfinance as yf
+    except ImportError:
+        errors.append("沒有安裝 yfinance,無法計算操作訊號")
+        return {}
+    syms = {}
+    for code, market in codes.items():
+        syms[code] = f"{code}.TW" if market == "上市" else f"{code}.TWO"
+    out = {}
+    try:
+        raw = yf.download(list(syms.values()), period="8mo", interval="1d", group_by="ticker",
+                          auto_adjust=False, progress=False, threads=True)
+    except Exception as e:  # noqa: BLE001
+        errors.append(f"歷史股價抓取失敗:{type(e).__name__}")
+        return {}
+    for code, sym in syms.items():
+        try:
+            d = raw[sym] if isinstance(raw.columns, pd.MultiIndex) else raw
+            d = d[["Open", "High", "Low", "Close", "Volume"]].dropna()
+            d.index = pd.to_datetime(d.index).tz_localize(None).normalize()
+            o = official.get(code)
+            if o and o.get("close") and o.get("open") and o.get("high") and o.get("low"):
+                ts = pd.Timestamp(today)
+                d.loc[ts] = [o["open"], o["high"], o["low"], o["close"], o.get("volume") or 0]
+                d = d.sort_index()
+            d = d[d["Volume"] > 0]
+            if len(d) > 30:
+                out[code] = d
+        except Exception:  # noqa: BLE001
+            pass
+    return out
+
+
+def _num(x):
+    try:
+        return int(str(x).replace(",", "").strip() or 0)
+    except ValueError:
+        return 0
+
+
+def load_inst(cal, today):
+    """最近 12 個交易日的三大法人買賣超(有快取,每天只補抓缺的)。{日期: {代號: [外資, 投信, 三大法人]}}"""
+    import time as _t
+    cache = json.loads(INST_JSON.read_text(encoding="utf-8")) if INST_JSON.exists() else {}
+    if DEMO_DIR:
+        return cache
+    days, d = [], today
+    while len(days) < 12:
+        if cal.is_trading(d):
+            days.append(d)
+        d -= timedelta(days=1)
+    for d in sorted(days):
+        k = d.isoformat()
+        if k in cache:
+            continue
+        day = {}
+        js = get_json(TWSE_T86, "twse_t86", params={"date": f"{d:%Y%m%d}", "selectType": "ALLBUT0999", "response": "json"})
+        tp = get_json(TPEX_INST, "tpex_inst", params={"type": "Daily", "sect": "EW", "date": f"{d:%Y/%m/%d}", "response": "json"})
+        ok = False
+        if isinstance(js, dict) and js.get("stat") == "OK":
+            f = js.get("fields") or []
+            try:
+                i_fi = next(i for i, x in enumerate(f) if "外陸資買賣超" in x)
+                i_it = next(i for i, x in enumerate(f) if x.startswith("投信買賣超"))
+                i_tot = next(i for i, x in enumerate(f) if "三大法人" in x)
+                for r in js.get("data") or []:
+                    c = str(r[0]).strip()
+                    if re.fullmatch(r"\d{4}", c):
+                        day[c] = [_num(r[i_fi]), _num(r[i_it]), _num(r[i_tot])]
+                ok = True
+            except StopIteration:
+                pass
+        if isinstance(tp, dict):
+            for r in ((tp.get("tables") or [{}])[0].get("data") or []):
+                c = str(r[0]).strip()
+                if re.fullmatch(r"\d{4}", c) and len(r) > 23:
+                    day[c] = [_num(r[4]), _num(r[13]), _num(r[23])]
+                    ok = True
+        if ok and day:
+            cache[k] = day
+        _t.sleep(2)
+    keep = sorted(cache)[-15:]
+    cache = {k: cache[k] for k in keep}
+    INST_JSON.parent.mkdir(parents=True, exist_ok=True)
+    INST_JSON.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
+    return cache
+
+
+def load_holdings():
+    if HOLDINGS_JSON.exists():
+        try:
+            return json.loads(HOLDINGS_JSON.read_text(encoding="utf-8")).get("holdings", [])
+        except Exception:  # noqa: BLE001
+            errors.append("holdings.json 格式錯誤")
+    return []
 
 
 def load_twse_near_disposal():
@@ -307,7 +469,7 @@ def save_history(hist):
 
 def build(today: date):
     prices = load_prices()
-    ssf = load_ssf_codes()
+    ssf, small = load_ssf_contracts()
     hist = load_history()
 
     # 把今天抓到的處置紀錄存進歷史(證交所只列最近公告,存起來才知道誰還在關、誰剛出關)
@@ -324,6 +486,7 @@ def build(today: date):
         item["chg_pct"] = p.get("chg_pct")
         item["watch"] = item["code"] in WATCHLIST
         item["ssf"] = item["code"] in ssf
+        item["small"] = small.get(item["code"])
         return item
 
     in_disposal, releasing, just_released = [], [], []
@@ -349,6 +512,35 @@ def build(today: date):
     near = [enrich(x) for x in load_twse_near_disposal() if x["code"] not in active]
     attention = [enrich(x) for x in load_twse_attention()]
 
+    # ---------------- 操作訊號 ----------------
+    signals, holdings_st, levels = [], [], {}
+    if ENABLE_SIGNALS:
+        import strategy as S
+        cal = S.Calendar(load_holidays())
+        episodes = S.merge_episodes(list(hist["disposals"].values()), cal)
+        holdings = load_holdings()
+        need = {e["code"]: e["market"] for e in episodes if e["end"] >= today - timedelta(days=10)}
+        for h in holdings:
+            need.setdefault(h["code"], h.get("market") or "上市")
+        hp = load_history_prices(need, today, prices)
+        inst = load_inst(cal, today)
+        signaled = hist.setdefault("b_signaled", {})
+        signals, lv = S.build_signals(today, cal, episodes, hp, inst, small, signaled)
+        holdings_st = [S.holding_status(h, today, cal, episodes, hp) for h in holdings]
+        holdings_st.sort(key=lambda x: (x["level"] != "red", x["code"]))
+        held = {h["code"] for h in holdings}
+        for x in signals:
+            x["held"] = x["code"] in held
+            if len(holdings) >= MAX_POSITIONS and x["tier"] == "B":
+                x["full"] = True
+        levels = {c: {"close": v["close"], "ma20": round(v["ma20"], 2), "stop_next": round(v["stop_next"], 2),
+                      "release": str(v["release"])} for c, v in lv.items()}
+        for h in holdings_st:
+            if h["code"] not in levels and h.get("stop_next"):
+                levels[h["code"]] = {"stop_next": h["stop_next"], "release": h["release"], "close": h["close"]}
+        hist["b_signaled"] = {k: v for k, v in signaled.items()
+                              if date.fromisoformat(k.split("_")[1]) >= today - timedelta(days=90)}
+
     def sort_key(x):
         return (not x.get("watch"), not x.get("ssf"), x["code"])
 
@@ -364,6 +556,10 @@ def build(today: date):
         "releasing_soon": releasing,
         "just_released": just_released,
         "attention": attention,
+        "signals": signals,
+        "holdings": holdings_st,
+        "levels": levels,
+        "max_positions": MAX_POSITIONS,
         "errors": errors,
         "settings": {"release_soon_days": RELEASE_SOON_DAYS, "just_released_days": JUST_RELEASED_DAYS},
     }
@@ -386,6 +582,40 @@ def fmt(x):
 
 def line_message(data):
     lines = [f"📡 處置股雷達 {data['date']}"]
+
+    reds = [h for h in data.get("holdings", []) if h["level"] == "red"]
+    if reds:
+        lines += ["", f"🔴 持股要處理({len(reds)})"]
+        for h in reds:
+            lines.append(f"・{h['code']} {h['name']}({h.get('strategy')} {h.get('instrument')})")
+            for a in h["alerts"]:
+                lines.append(f"   → {a}")
+    sig = data.get("signals", [])
+    if sig:
+        lines += ["", f"🟢 明天可進場(依優先順序,{len(sig)})"]
+        for x in sig[:8]:
+            side = "空" if x["side"] == "short" else "買"
+            flag = "(已持有)" if x.get("held") else ("(已滿倉,建議略過)" if x.get("full") else "")
+            lines.append(f"{x['rank']}. [{x['tier']}] {x['code']} {x['name']} {x['title']}・{x['instrument']}{side}{flag}")
+            lines.append(f"   進場:{x['entry']}")
+            if x.get("target"):
+                lines.append(f"   停利:{x['target']}")
+            lines.append(f"   停損:{x['stop']}")
+            lines.append(f"   出場:{x['exit']}")
+        if len(sig) > 8:
+            lines.append(f"…另有 {len(sig) - 8} 檔,請開 App")
+    yel = [h for h in data.get("holdings", []) if h["level"] != "red"]
+    if yel:
+        lines += ["", f"🟡 持有中({len(yel)})"]
+        for h in yel:
+            extra = []
+            if h.get("target"):
+                extra.append(f"停利 {h['target']}")
+            if h.get("stop_next"):
+                extra.append(f"明日停損收盤 {h['stop_next']}")
+            if h.get("release"):
+                extra.append(f"出關 {h['release'][5:]}")
+            lines.append(f"・{h['code']} {h['name']} " + "、".join(extra))
 
     def section(title, items, extra=lambda x: "", limit=10):
         if not items:
@@ -441,7 +671,7 @@ def main():
 
     text, has_signal = line_message(data)
     print(text)
-    if SEND_LINE and not DEMO_DIR and (has_signal or SEND_WHEN_EMPTY or data["errors"]):
+    if SEND_LINE and not DEMO_DIR and not os.environ.get("NO_LINE") and (has_signal or SEND_WHEN_EMPTY or data["errors"]):
         send_line(text)
 
 

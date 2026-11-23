@@ -22,7 +22,7 @@ jobs:
           python-version: "3.11"
 
       - name: 安裝套件
-        run: pip install requests
+        run: pip install requests pandas numpy yfinance
 
       - name: 抓資料、計算、推播
         env:
@@ -33,6 +33,8 @@ jobs:
         run: |
           git config user.name "stock-alert-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add docs/data.json data/history.json
+          git add docs/data.json data/history.json data/inst_cache.json
           git diff --cached --quiet || git commit -m "更新資料 $(date -u +%F)"
+          # App 可能剛寫入 data/holdings.json,先同步再推送
+          git pull --rebase origin main
           git push
