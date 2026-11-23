@@ -4,7 +4,7 @@
   1. 讀今晚的訊號(docs/data.json)和你的持股(data/holdings.json)
   2. 抓證交所即時五檔(整股 + 盤中零股)
   3. 算委買委賣價差,檢查做法三開盤價區間、做法一持股是否接近停損
-  4. 存成 docs/realtime.json(App 顯示),並發 LINE
+  4. 存成 docs/realtime.json(只顯示在 App,不發 LINE)
 """
 import json
 import os
@@ -83,7 +83,8 @@ def main():
     (ROOT / "docs" / "realtime.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
     text = "\n".join(lines)[:4900]
     print(text)
-    if cm and not os.environ.get("NO_LINE"):
+    # 使用者只要每天 18:40 那一則推播,即時檢查只更新 App,不發 LINE
+    if cm and os.environ.get("SEND_LINE_REALTIME"):
         send_line(text)
 
 
