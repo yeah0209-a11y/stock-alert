@@ -164,8 +164,11 @@ def fetch_events(a: date, b: date):
             m["n_merged"] += 1
             if r["level"].startswith("第二次"):
                 m["level"] = r["level"]
+                if m["upgrade_start"] is None:
+                    m["upgrade_start"] = r["start"]
         else:
             r["n_merged"] = 1
+            r["upgrade_start"] = r["start"] if r["level"].startswith("第二次") else None
             merged.append(r)
     df = pd.DataFrame(merged).sort_values("start").reset_index(drop=True)
     log(f"合併重疊後處置期間 {len(df)} 段")
@@ -230,8 +233,10 @@ def trade(strategy, ev, side, entry_date, entry, exit_date, exit_, reason, cost_
         c = 2 * FEE + TAX_DT
     else:  # short multi-day
         c = 2 * FEE + TAX + BORROW
+    up = ev.get("upgrade_start")
+    known2 = up is not None and not pd.isna(up) and pd.Timestamp(up) <= entry_date
     return {"strategy": strategy, "code": ev["code"], "name": ev["name"], "market": ev["market"],
-            "level": ev["level"], "ssf": ev["ssf"], "start": ev["start"], "end": ev["end"],
+            "level": "第二次(進場時已知)" if known2 else "第一次/尚未升級", "ssf": ev["ssf"], "start": ev["start"], "end": ev["end"],
             "side": side, "entry_date": entry_date.date(), "entry": round(entry, 2),
             "exit_date": exit_date.date(), "exit": round(exit_, 2), "reason": reason,
             "gross": g, "net_spot": g - c, "net_ssf": g - SSF_COST}
@@ -378,7 +383,7 @@ def main():
         lines += [f"## {label}", "", s.drop(columns="口徑").to_markdown(), ""]
     pd.concat(summ).to_csv(OUT / "summary.csv", encoding="utf-8-sig")
 
-    for key, title in (("level", "依處置等級"), ("ssf", "依是否有個股期"), ("market", "依上市/上櫃")):
+    for key, title in (("level", "依處置等級(只用進場當天已知的資訊)"), ("ssf", "依是否有個股期"), ("market", "依上市/上櫃")):
         s = tr.groupby(["strategy", key]).apply(stats, col="net_spot")
         lines += [f"## {title}(現股淨報酬)", "", s.to_markdown(), ""]
     tr["year"] = pd.to_datetime(tr["entry_date"]).dt.year
