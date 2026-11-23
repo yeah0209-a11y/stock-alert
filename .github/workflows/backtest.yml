@@ -1,0 +1,41 @@
+# 處置股回測:只在 backtest 分支有更新回測程式時執行,不影響每日的處置股雷達
+name: 處置股回測
+
+on:
+  push:
+    branches: [backtest]
+    paths:
+      - "backtest/disposal_backtest.py"
+      - ".github/workflows/backtest.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 安裝套件
+        run: pip install requests pandas numpy yfinance tabulate
+
+      - name: 執行回測
+        run: |
+          mkdir -p backtest/results
+          python backtest/disposal_backtest.py 2>&1 | tee backtest/results/run.log
+
+      - name: 存回結果
+        if: always()
+        run: |
+          git config user.name "stock-alert-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -f backtest/results
+          git diff --cached --quiet || git commit -m "回測結果 $(date -u +%F)"
+          git push
