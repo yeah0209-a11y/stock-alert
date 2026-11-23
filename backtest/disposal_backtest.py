@@ -222,6 +222,131 @@ def fetch_prices(events, a: date, b: date):
     return prices
 
 
+
+# ======================================================================
+# 三大法人買賣超(證交所 T86 / 櫃買 三大法人日報),有快取,中斷可以接著抓
+# ======================================================================
+CACHE = Path(__file__).resolve().parent / "cache"
+FETCH_BUDGET_MIN = 110   # 最多抓幾分鐘,超過就先用已抓到的
+
+
+def _num(x):
+    try:
+        return int(str(x).replace(",", "").strip() or 0)
+    except ValueError:
+        return 0
+
+
+def _fetch_inst_day(market, d):
+    if market == "上市":
+        js = get("https://www.twse.com.tw/rwd/zh/fund/T86",
+                 {"date": f"{d:%Y%m%d}", "selectType": "ALLBUT0999", "response": "json"}, tries=2)
+        if not isinstance(js, dict):
+            return None
+        if js.get("stat") != "OK":
+            return []          # 休市或無資料
+        f = js.get("fields") or []
+        i_fi = next(i for i, x in enumerate(f) if "外陸資買賣超" in x)
+        i_it = next(i for i, x in enumerate(f) if x.startswith("投信買賣超"))
+        i_tot = next(i for i, x in enumerate(f) if "三大法人" in x)
+        rows = js.get("data") or []
+    else:
+        js = get("https://www.tpex.org.tw/www/zh-tw/insti/dailyTrade",
+                 {"type": "Daily", "sect": "EW", "date": f"{d:%Y/%m/%d}", "response": "json"}, tries=2)
+        if not isinstance(js, dict):
+            return None
+        t = (js.get("tables") or [{}])[0]
+        rows = t.get("data") or []
+        i_fi, i_it, i_tot = 4, 13, 23   # 外資(不含外資自營)、投信、三大法人合計
+    out = []
+    for r in rows:
+        code = str(r[0]).strip()
+        if re.fullmatch(r"\d{4}", code) and len(r) > i_tot:
+            out.append((d.isoformat(), code, _num(r[i_fi]), _num(r[i_it]), _num(r[i_tot])))
+    return out
+
+
+def fetch_inst(needed_days):
+    """回傳 DataFrame: date, code, fi(外資), it(投信), tot(三大法人);以及每個市場已抓到的日期"""
+    import threading
+    CACHE.mkdir(parents=True, exist_ok=True)
+    t0 = time.time()
+    result = {}
+
+    def work(market, fname, pause):
+        path = CACHE / fname
+        done_path = CACHE / (fname + ".days")
+        df = pd.read_csv(path, dtype={"code": str}) if path.exists() else \
+            pd.DataFrame(columns=["date", "code", "fi", "it", "tot"])
+        done = set(done_path.read_text().split()) if done_path.exists() else set()
+        todo = [d for d in sorted(needed_days) if d.isoformat() not in done]
+        log(f"[{market}] 法人資料:快取 {len(done)} 天,要補抓 {len(todo)} 天")
+        buf = []
+        for k, d in enumerate(todo):
+            if (time.time() - t0) / 60 > FETCH_BUDGET_MIN:
+                log(f"[{market}] 超過時間上限,先停在 {d}")
+                break
+            rows = _fetch_inst_day(market, d)
+            if rows is not None:
+                buf += rows
+                done.add(d.isoformat())
+            time.sleep(pause)
+            if (k + 1) % 50 == 0 or k == len(todo) - 1:
+                if buf:
+                    df = pd.concat([df, pd.DataFrame(buf, columns=df.columns)], ignore_index=True)
+                    buf = []
+                df.to_csv(path, index=False, compression="gzip")
+                done_path.write_text("\n".join(sorted(done)))
+                log(f"[{market}] {k+1}/{len(todo)}")
+        df["market"] = market
+        result[market] = (df, done)
+
+    th = [threading.Thread(target=work, args=("上市", "inst_twse.csv.gz", 2.5)),
+          threading.Thread(target=work, args=("上櫃", "inst_tpex.csv.gz", 2.0))]
+    [x.start() for x in th]
+    [x.join() for x in th]
+    return result
+
+
+def inst_features(tr, prices, inst):
+    """每筆交易,用『進場日前一個交易日為止』的資料算法人買賣超佔成交量比例(進場當下已經公布的資訊)"""
+    series = {}
+    for market, (df, done) in inst.items():
+        if df.empty:
+            continue
+        df = df.copy()
+        df["date"] = pd.to_datetime(df["date"])
+        for code, g in df.groupby("code"):
+            series[(market, code)] = g.set_index("date")[["fi", "it", "tot"]]
+    done_days = {m: set(pd.to_datetime(list(d))) for m, (_, d) in inst.items()}
+    cols = {k: [] for k in ("fi_it5", "it5", "tot5", "tot10", "inst_cover")}
+    for r in tr.itertuples():
+        px = prices.get(r.code)
+        e = pd.Timestamp(r.entry_date)
+        hist = px.index[px.index < e] if px is not None else []
+        vals = {k: np.nan for k in cols}
+        if len(hist) >= 10:
+            w10 = hist[-10:]
+            w5 = hist[-5:]
+            cov = sum(d in done_days.get(r.market, set()) for d in w10) / 10
+            vals["inst_cover"] = cov
+            if cov >= 0.8:
+                s = series.get((r.market, r.code))
+                s10 = s.reindex(w10).fillna(0) if s is not None else pd.DataFrame(0, index=w10, columns=["fi", "it", "tot"])
+                s5 = s10.loc[w5]
+                v10, v5 = px.loc[w10, "Volume"].sum(), px.loc[w5, "Volume"].sum()
+                if v5 > 0:
+                    vals["fi_it5"] = (s5["fi"].sum() + s5["it"].sum()) / v5
+                    vals["it5"] = s5["it"].sum() / v5
+                    vals["tot5"] = s5["tot"].sum() / v5
+                    vals["tot10"] = s10["tot"].sum() / v10
+        for k in cols:
+            cols[k].append(vals[k])
+    for k, v in cols.items():
+        tr[k] = v
+    return tr
+
+
 # ======================================================================
 # 策略
 # ======================================================================
@@ -368,6 +493,19 @@ def main():
         except Exception as e:  # noqa: BLE001
             log("event fail", ev["code"], ev["start"], e)
     tr = pd.DataFrame(trades)
+    # ---- 三大法人
+    cal = sorted(set().union(*[set(p.index) for p in prices.values()]))
+    cal = pd.DatetimeIndex(cal)
+    needed = set()
+    for ev in events.to_dict("records"):
+        s_, e_ = pd.Timestamp(ev["start"]), pd.Timestamp(ev["end"])
+        i0 = cal.searchsorted(s_) - 12
+        i1 = cal.searchsorted(e_, side="right") + 1
+        for d in cal[max(i0, 0):i1]:
+            needed.add(d.date())
+    log(f"== 抓三大法人:需要 {len(needed)} 個交易日")
+    inst = fetch_inst(needed)
+    tr = inst_features(tr, prices, inst)
     events.to_csv(OUT / "events.csv", index=False, encoding="utf-8-sig")
     pd.DataFrame(infos).to_csv(OUT / "event_features.csv", index=False, encoding="utf-8-sig")
     tr.to_csv(OUT / "trades.csv", index=False, encoding="utf-8-sig")
@@ -395,6 +533,17 @@ def main():
         lines += ["## B 策略出場原因", "", s.to_markdown(), ""]
         s = b_tr.groupby(b_tr["reason"].str.split("→").str[0]).apply(stats, col="net_spot")
         lines += ["## B 策略進場型態", "", s.to_markdown(), ""]
+    # ---- 法人條件分組
+    def bucket(x):
+        if pd.isna(x):
+            return "無資料"
+        return "買超" if x > 0 else ("賣超" if x < 0 else "沒進出")
+    for col, title in (("fi_it5", "進場前5日 外資+投信 買賣超"), ("it5", "進場前5日 投信 買賣超"),
+                       ("tot10", "進場前10日 三大法人 買賣超")):
+        tr["_b"] = tr[col].map(bucket)
+        s_ = tr.groupby(["strategy", "_b"]).apply(stats, col="net_spot")
+        lines += [f"## 依{title}(現股淨報酬)", "", s_.to_markdown(), ""]
+    tr.drop(columns="_b").to_csv(OUT / "trades.csv", index=False, encoding="utf-8-sig")
     (OUT / "summary.md").write_text("\n".join(lines), encoding="utf-8")
     log("\n".join(lines[:60]))
 
