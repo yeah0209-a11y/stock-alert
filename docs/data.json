@@ -663,37 +663,7 @@
  ],
  "just_released": [],
  "attention": [],
- "signals": [
-  {
-   "code": "6140",
-   "name": "訊達",
-   "market": "上櫃",
-   "instrument": "現股",
-   "small_contract": null,
-   "second": false,
-   "margin_x": null,
-   "close": 27.5,
-   "ma20": 25.97,
-   "start": "2026-11-18",
-   "end": "2026-11-24",
-   "release": "2026-11-25",
-   "inst5": 54000,
-   "it5": 0,
-   "episode": "6140_2026-11-18",
-   "entry_day": "2026-11-24",
-   "strategy": "做法一",
-   "side": "long",
-   "tier": "B",
-   "title": "出關前低接(深蹲蓄力)",
-   "entry": "11/24 9:00 開盤買進",
-   "exit": "沒停利也沒停損 → 11/25 出關日 9:00 開盤賣出",
-   "target": "買進價 × 1.10(以今天收盤估約 30.25),買進後馬上掛限價賣單",
-   "stop": "收盤跌破月線×0.95 就賣;明天的停損收盤價約 24.78(每天更新)",
-   "stop_next": 24.78,
-   "rank": 1,
-   "held": false
-  }
- ],
+ "signals": [],
  "holdings": [],
  "levels": {
   "2305": {
@@ -707,6 +677,12 @@
    "ma20": 364.8,
    "stop_next": 349.53,
    "release": "2026-11-24"
+  },
+  "3287": {
+   "close": 40.8,
+   "ma20": 62.65,
+   "stop_next": 59.45,
+   "release": "2026-11-27"
   },
   "3441": {
    "close": 125.5,
@@ -794,6 +770,13 @@
   }
  },
  "max_positions": 10,
+ "cost": {
+  "amount": 10000,
+  "fee_each": 3,
+  "tax": 30,
+  "total": 36,
+  "pct": 0.36
+ },
  "errors": [],
  "settings": {
   "release_soon_days": 2,
