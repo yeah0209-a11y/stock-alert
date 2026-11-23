@@ -1,0 +1,25 @@
+# 新版測試:只在 v3 分支執行,不發 LINE,不影響正式版
+name: 新版測試 v3
+on:
+  push:
+    branches: [v3]
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install requests pandas numpy yfinance
+      - run: |
+          NO_LINE=1 DEMO_TODAY=2026-11-23 python fetch_data.py > test_run.log 2>&1 || true
+          echo '{"holdings":[{"id":"t1","code":"6140","name":"訊達","market":"上櫃","strategy":"做法一","instrument":"現股","side":"long","entry_date":"2026-11-24","entry_price":28.5}]}' > data/holdings.json
+          NO_LINE=1 python realtime.py >> test_run.log 2>&1 || true
+      - if: always()
+        run: |
+          git config user.name "stock-alert-bot"; git config user.email "actions@users.noreply.github.com"
+          git add -f docs/data.json docs/realtime.json data/chip_cache.json test_run.log
+          git commit -m "v3 測試結果" || true
+          git push
