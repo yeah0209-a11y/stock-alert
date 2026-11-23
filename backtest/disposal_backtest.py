@@ -431,6 +431,41 @@ def run_event(ev, d):
                                  tag + "→" + done[2], "long"))
             break  # 每次處置只做一次
 
+    # ---------- B2 同 B,但收盤後才看到訊號 → 隔天開盤買(App 18:40 才推播,實際可執行版本)
+    if C[pre] > ma[pre]:
+        for t in days:
+            p = pos(t)
+            if np.isnan(ma[t]) or not ma_up(t):
+                continue
+            hi5 = C.iloc[max(0, p - 5):p].max()
+            langzi = L[t] <= ma[t] * 1.02 and C[t] >= ma[t] * 0.98
+            squat = C[t] / hi5 - 1 <= -0.10 and C[t] >= ma[t] * 0.95
+            if not (langzi or squat):
+                continue
+            nxt = idx[p + 1] if p + 1 < len(idx) else None
+            if nxt is None or nxt >= rel:      # 隔天就出關了,不做
+                break
+            entry, tag = O[nxt], ("浪子回頭" if langzi else "深蹲蓄力")
+            tgt = entry * (1 + TARGET)
+            done = None
+            for u in idx[(idx >= nxt) & (idx <= rel)]:
+                if u == rel:
+                    done = (u, O[u], "出關開盤" if O[u] < tgt else "出關開盤(達10%)")
+                    break
+                if u > nxt and O[u] >= tgt:
+                    done = (u, O[u], "跳空達10%")
+                    break
+                if H[u] >= tgt:
+                    done = (u, tgt, "盤中達10%")
+                    break
+                if C[u] < ma[u] * 0.95:
+                    done = (u, C[u], "跌破月線5%停損")
+                    break
+            if done:
+                out.append(trade("B2 小哥版:出關前買(隔天開盤進場)", ev, "long", nxt, entry, done[0], done[1],
+                                 tag + "→" + done[2], "long"))
+            break
+
     # ---------- C0 基準:出關日當沖空(開盤空、收盤補)
     out.append(trade("C0 基準:每檔出關日當沖空", ev, "short", rel, O[rel], rel, C[rel], "收盤回補", "daytrade"))
     # ---------- C1 小哥版:關禁閉期間有漲 + 出關日「開小高」(0~5%) 才空
