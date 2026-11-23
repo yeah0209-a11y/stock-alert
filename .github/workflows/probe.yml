@@ -1,0 +1,19 @@
+name: 法人資料格式測試
+on:
+  push:
+    branches: [backtest]
+    paths: ["backtest/probe.py"]
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install requests && mkdir -p backtest/results && python backtest/probe.py
+      - if: always()
+        run: |
+          git config user.name "stock-alert-bot"; git config user.email "actions@users.noreply.github.com"
+          git add -f backtest/results/probe.json; git commit -m "probe" || true; git push
