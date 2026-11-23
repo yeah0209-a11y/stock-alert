@@ -153,7 +153,22 @@ def fetch_events(a: date, b: date):
     df = pd.DataFrame(ev)
     if df.empty:
         return df
-    df = df.drop_duplicates(["code", "start"]).sort_values("start").reset_index(drop=True)
+    df = df.drop_duplicates(["code", "start"]).sort_values(["code", "start"]).reset_index(drop=True)
+    # 合併重疊的處置:例如第一次(5分盤)還沒結束就被加碼成第二次(20分盤),
+    # 這時第一次的「出關日」其實沒有出關,要合併成同一段處置期間
+    merged = []
+    for r in df.to_dict("records"):
+        if merged and merged[-1]["code"] == r["code"] and r["start"] <= merged[-1]["end"]:
+            m = merged[-1]
+            m["end"] = max(m["end"], r["end"])
+            m["n_merged"] += 1
+            if r["level"].startswith("第二次"):
+                m["level"] = r["level"]
+        else:
+            r["n_merged"] = 1
+            merged.append(r)
+    df = pd.DataFrame(merged).sort_values("start").reset_index(drop=True)
+    log(f"合併重疊後處置期間 {len(df)} 段")
     return df
 
 
