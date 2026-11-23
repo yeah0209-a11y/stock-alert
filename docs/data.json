@@ -1,6 +1,6 @@
 {
- "updated": "2026-11-24 02:53",
- "date": "2026-11-24",
+ "updated": "2026-11-23 18:30",
+ "date": "2026-11-23",
  "near_disposal": [
   {
    "code": "1795",
@@ -129,7 +129,7 @@
    "ssf": true,
    "small": null,
    "days_left": 5,
-   "status": "處置中"
+   "status": "明日開始"
   },
   {
    "code": "3532",
@@ -145,7 +145,7 @@
    "watch": false,
    "ssf": true,
    "small": null,
-   "days_left": 4,
+   "days_left": 5,
    "status": "處置中"
   },
   {
@@ -163,7 +163,7 @@
    "ssf": false,
    "small": null,
    "days_left": 5,
-   "status": "處置中"
+   "status": "明日開始"
   },
   {
    "code": "2305",
@@ -179,7 +179,24 @@
    "watch": false,
    "ssf": false,
    "small": null,
-   "days_left": 4,
+   "days_left": 5,
+   "status": "處置中"
+  },
+  {
+   "code": "2466",
+   "name": "冠西電",
+   "market": "上市",
+   "announced": "2026-11-16",
+   "start": "2026-11-17",
+   "end": "2026-11-23",
+   "reason": "連續三次",
+   "measure": "第二次處置",
+   "close": 387.0,
+   "chg_pct": -4.21,
+   "watch": false,
+   "ssf": false,
+   "small": null,
+   "days_left": 1,
    "status": "處置中"
   },
   {
@@ -197,7 +214,7 @@
    "ssf": false,
    "small": null,
    "days_left": 5,
-   "status": "處置中"
+   "status": "明日開始"
   },
   {
    "code": "3287",
@@ -213,7 +230,7 @@
    "watch": false,
    "ssf": false,
    "small": null,
-   "days_left": 3,
+   "days_left": 4,
    "status": "處置中"
   },
   {
@@ -231,7 +248,7 @@
    "ssf": false,
    "small": null,
    "days_left": 5,
-   "status": "處置中"
+   "status": "明日開始"
   },
   {
    "code": "3363",
@@ -248,7 +265,7 @@
    "ssf": false,
    "small": null,
    "days_left": 5,
-   "status": "處置中"
+   "status": "明日開始"
   },
   {
    "code": "3441",
@@ -264,7 +281,7 @@
    "watch": false,
    "ssf": false,
    "small": null,
-   "days_left": 2,
+   "days_left": 3,
    "status": "處置中"
   },
   {
@@ -281,7 +298,7 @@
    "watch": false,
    "ssf": false,
    "small": null,
-   "days_left": 4,
+   "days_left": 5,
    "status": "處置中"
   },
   {
@@ -298,7 +315,7 @@
    "watch": false,
    "ssf": false,
    "small": null,
-   "days_left": 1,
+   "days_left": 2,
    "status": "處置中"
   },
   {
@@ -315,7 +332,7 @@
    "watch": false,
    "ssf": false,
    "small": null,
-   "days_left": 3,
+   "days_left": 4,
    "status": "處置中"
   },
   {
@@ -332,7 +349,24 @@
    "watch": false,
    "ssf": false,
    "small": null,
-   "days_left": 4,
+   "days_left": 5,
+   "status": "處置中"
+  },
+  {
+   "code": "6108",
+   "name": "競國",
+   "market": "上市",
+   "announced": "2026-11-16",
+   "start": "2026-11-17",
+   "end": "2026-11-23",
+   "reason": "連續三次",
+   "measure": "第一次處置",
+   "close": 34.45,
+   "chg_pct": -9.93,
+   "watch": false,
+   "ssf": false,
+   "small": null,
+   "days_left": 1,
    "status": "處置中"
   },
   {
@@ -349,7 +383,7 @@
    "watch": false,
    "ssf": false,
    "small": null,
-   "days_left": 1,
+   "days_left": 2,
    "status": "處置中"
   },
   {
@@ -366,7 +400,7 @@
    "watch": false,
    "ssf": false,
    "small": null,
-   "days_left": 4,
+   "days_left": 5,
    "status": "處置中"
   },
   {
@@ -383,7 +417,24 @@
    "watch": false,
    "ssf": false,
    "small": null,
-   "days_left": 3,
+   "days_left": 4,
+   "status": "處置中"
+  },
+  {
+   "code": "6751",
+   "name": "智聯服務",
+   "market": "上櫃",
+   "announced": "2026-11-16",
+   "start": "2026-11-17",
+   "end": "2026-11-23",
+   "reason": "",
+   "measure": "再次處置",
+   "close": 71.0,
+   "chg_pct": -4.7,
+   "watch": false,
+   "ssf": false,
+   "small": null,
+   "days_left": 1,
    "status": "處置中"
   },
   {
@@ -400,7 +451,7 @@
    "watch": false,
    "ssf": false,
    "small": null,
-   "days_left": 4,
+   "days_left": 5,
    "status": "處置中"
   },
   {
@@ -417,7 +468,7 @@
    "watch": false,
    "ssf": false,
    "small": null,
-   "days_left": 3,
+   "days_left": 4,
    "status": "處置中"
   },
   {
@@ -434,7 +485,7 @@
    "watch": false,
    "ssf": false,
    "small": null,
-   "days_left": 1,
+   "days_left": 2,
    "status": "處置中"
   },
   {
@@ -452,7 +503,7 @@
    "ssf": false,
    "small": null,
    "days_left": 5,
-   "status": "處置中"
+   "status": "明日開始"
   },
   {
    "code": "8042",
@@ -469,7 +520,7 @@
    "ssf": false,
    "small": null,
    "days_left": 5,
-   "status": "處置中"
+   "status": "明日開始"
   },
   {
    "code": "8084",
@@ -485,11 +536,62 @@
    "watch": false,
    "ssf": false,
    "small": null,
-   "days_left": 1,
+   "days_left": 2,
    "status": "處置中"
   }
  ],
  "releasing_soon": [
+  {
+   "code": "2466",
+   "name": "冠西電",
+   "market": "上市",
+   "announced": "2026-11-16",
+   "start": "2026-11-17",
+   "end": "2026-11-23",
+   "reason": "連續三次",
+   "measure": "第二次處置",
+   "close": 387.0,
+   "chg_pct": -4.21,
+   "watch": false,
+   "ssf": false,
+   "small": null,
+   "days_left": 1,
+   "status": "處置中"
+  },
+  {
+   "code": "6108",
+   "name": "競國",
+   "market": "上市",
+   "announced": "2026-11-16",
+   "start": "2026-11-17",
+   "end": "2026-11-23",
+   "reason": "連續三次",
+   "measure": "第一次處置",
+   "close": 34.45,
+   "chg_pct": -9.93,
+   "watch": false,
+   "ssf": false,
+   "small": null,
+   "days_left": 1,
+   "status": "處置中"
+  },
+  {
+   "code": "6751",
+   "name": "智聯服務",
+   "market": "上櫃",
+   "announced": "2026-11-16",
+   "start": "2026-11-17",
+   "end": "2026-11-23",
+   "reason": "",
+   "measure": "再次處置",
+   "close": 71.0,
+   "chg_pct": -4.7,
+   "watch": false,
+   "ssf": false,
+   "small": null,
+   "days_left": 1,
+   "status": "處置中"
+  },
   {
    "code": "4174",
    "name": "浩鼎",
@@ -504,7 +606,7 @@
    "watch": false,
    "ssf": false,
    "small": null,
-   "days_left": 1,
+   "days_left": 2,
    "status": "處置中"
   },
   {
@@ -521,7 +623,7 @@
    "watch": false,
    "ssf": false,
    "small": null,
-   "days_left": 1,
+   "days_left": 2,
    "status": "處置中"
   },
   {
@@ -538,7 +640,7 @@
    "watch": false,
    "ssf": false,
    "small": null,
-   "days_left": 1,
+   "days_left": 2,
    "status": "處置中"
   },
   {
@@ -555,122 +657,62 @@
    "watch": false,
    "ssf": false,
    "small": null,
-   "days_left": 1,
-   "status": "處置中"
-  },
-  {
-   "code": "3441",
-   "name": "聯一光",
-   "market": "上櫃",
-   "announced": "2026-11-16",
-   "start": "2026-11-17",
-   "end": "2026-11-25",
-   "reason": "",
-   "measure": "再次處置",
-   "close": 125.5,
-   "chg_pct": -6.34,
-   "watch": false,
-   "ssf": false,
-   "small": null,
    "days_left": 2,
    "status": "處置中"
   }
  ],
- "just_released": [
+ "just_released": [],
+ "attention": [],
+ "signals": [
   {
-   "code": "2466",
-   "name": "冠西電",
-   "market": "上市",
-   "announced": "2026-11-16",
-   "start": "2026-11-17",
-   "end": "2026-11-23",
-   "reason": "連續三次",
-   "measure": "第二次處置",
-   "close": 387.0,
-   "chg_pct": -4.21,
-   "watch": false,
-   "ssf": false,
-   "small": null,
-   "days_since": 1
-  },
-  {
-   "code": "6108",
-   "name": "競國",
-   "market": "上市",
-   "announced": "2026-11-16",
-   "start": "2026-11-17",
-   "end": "2026-11-23",
-   "reason": "連續三次",
-   "measure": "第一次處置",
-   "close": 34.45,
-   "chg_pct": -9.93,
-   "watch": false,
-   "ssf": false,
-   "small": null,
-   "days_since": 1
-  },
-  {
-   "code": "6751",
-   "name": "智聯服務",
+   "code": "6140",
+   "name": "訊達",
    "market": "上櫃",
-   "announced": "2026-11-16",
-   "start": "2026-11-17",
-   "end": "2026-11-23",
-   "reason": "",
-   "measure": "再次處置",
-   "close": 71.0,
-   "chg_pct": -4.7,
-   "watch": false,
-   "ssf": false,
-   "small": null,
-   "days_since": 1
+   "instrument": "現股",
+   "small_contract": null,
+   "second": false,
+   "margin_x": null,
+   "close": 27.5,
+   "ma20": 25.97,
+   "start": "2026-11-18",
+   "end": "2026-11-24",
+   "release": "2026-11-25",
+   "inst5": 54000,
+   "it5": 0,
+   "episode": "6140_2026-11-18",
+   "entry_day": "2026-11-24",
+   "strategy": "做法一",
+   "side": "long",
+   "tier": "B",
+   "title": "出關前低接(深蹲蓄力)",
+   "entry": "11/24 9:00 開盤買進",
+   "exit": "沒停利也沒停損 → 11/25 出關日 9:00 開盤賣出",
+   "target": "買進價 × 1.10(以今天收盤估約 30.25),買進後馬上掛限價賣單",
+   "stop": "收盤跌破月線×0.95 就賣;明天的停損收盤價約 24.78(每天更新)",
+   "stop_next": 24.78,
+   "rank": 1,
+   "held": false
   }
  ],
- "attention": [],
- "signals": [],
  "holdings": [],
  "levels": {
-  "1569": {
-   "close": 65.8,
-   "ma20": 87.55,
-   "stop_next": 82.59,
-   "release": "2026-12-01"
-  },
   "2305": {
    "close": 26.85,
    "ma20": 42.0,
    "stop_next": 39.37,
    "release": "2026-11-30"
   },
-  "3081": {
-   "close": 1390.0,
-   "ma20": 2019.0,
-   "stop_next": 1889.03,
-   "release": "2026-12-01"
-  },
-  "3162": {
-   "close": 48.5,
-   "ma20": 68.37,
-   "stop_next": 64.48,
-   "release": "2026-12-01"
+  "2466": {
+   "close": 387.0,
+   "ma20": 364.8,
+   "stop_next": 349.53,
+   "release": "2026-11-24"
   },
   "3287": {
    "close": 40.8,
    "ma20": 62.65,
    "stop_next": 59.45,
    "release": "2026-11-27"
-  },
-  "3354": {
-   "close": 27.35,
-   "ma20": 41.02,
-   "stop_next": 38.41,
-   "release": "2026-12-01"
-  },
-  "3363": {
-   "close": 247.5,
-   "ma20": 388.32,
-   "stop_next": 362.4,
-   "release": "2026-12-01"
   },
   "3441": {
    "close": 125.5,
@@ -708,6 +750,12 @@
    "stop_next": 110.65,
    "release": "2026-11-30"
   },
+  "6108": {
+   "close": 34.45,
+   "ma20": 33.93,
+   "stop_next": 32.29,
+   "release": "2026-11-24"
+  },
   "6140": {
    "close": 27.5,
    "ma20": 25.97,
@@ -726,6 +774,12 @@
    "stop_next": 60.16,
    "release": "2026-11-27"
   },
+  "6751": {
+   "close": 71.0,
+   "ma20": 84.8,
+   "stop_next": 80.72,
+   "release": "2026-11-24"
+  },
   "7584": {
    "close": 48.5,
    "ma20": 33.81,
@@ -743,18 +797,6 @@
    "ma20": 434.55,
    "stop_next": 411.57,
    "release": "2026-11-25"
-  },
-  "7856": {
-   "close": 1580.0,
-   "ma20": 2601.75,
-   "stop_next": 2428.61,
-   "release": "2026-12-01"
-  },
-  "8042": {
-   "close": 78.0,
-   "ma20": 118.89,
-   "stop_next": 111.95,
-   "release": "2026-12-01"
   }
  },
  "max_positions": 10,
