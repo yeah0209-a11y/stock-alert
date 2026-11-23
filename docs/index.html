@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="處置雷達">
+<meta name="theme-color" content="#0f1115">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<title>處置股雷達</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #181b22; --line: #262a33; --text: #e8eaed; --muted: #8a909c;
+    --up: #ff4d4f; --down: #2ecc71; --accent: #f5a623; --chip: #222631;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", sans-serif; }
+  header { position: sticky; top: 0; z-index: 5; background: rgba(15,17,21,.94);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    padding: calc(env(safe-area-inset-top) + 10px) 16px 0; border-bottom: 1px solid var(--line); }
+  .top { display: flex; align-items: baseline; justify-content: space-between; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: .5px; }
+  .updated { font-size: 12px; color: var(--muted); }
+  .refresh { background: none; border: 1px solid var(--line); color: var(--text); border-radius: 8px;
+    padding: 4px 10px; font-size: 13px; }
+  nav { display: flex; gap: 6px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
+  nav::-webkit-scrollbar { display: none; }
+  nav button { flex: none; background: var(--chip); color: var(--muted); border: 0; border-radius: 999px;
+    padding: 7px 12px; font-size: 14px; }
+  nav button.on { background: var(--text); color: var(--bg); font-weight: 600; }
+  nav .n { margin-left: 4px; font-variant-numeric: tabular-nums; opacity: .8; }
+  main { padding: 12px 12px calc(env(safe-area-inset-bottom) + 24px); }
+  .desc { font-size: 13px; color: var(--muted); margin: 2px 4px 12px; line-height: 1.5; }
+  .card { display: block; text-decoration: none; color: inherit; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; }
+  .card.watch { border-color: var(--accent); }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .name { font-size: 17px; font-weight: 600; }
+  .code { color: var(--muted); font-size: 14px; margin-right: 6px; font-variant-numeric: tabular-nums; }
+  .price { text-align: right; font-variant-numeric: tabular-nums; }
+  .price .c { font-size: 17px; font-weight: 600; }
+  .price .p { font-size: 13px; }
+  .up { color: var(--up); } .down { color: var(--down); }
+  .tags { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 5px; }
+  .tag { font-size: 11px; padding: 2px 7px; border-radius: 6px; background: var(--chip); color: var(--muted); }
+  .tag.w { background: rgba(245,166,35,.15); color: var(--accent); }
+  .tag.f { background: rgba(80,140,255,.15); color: #7aa7ff; }
+  .tag.hot { background: rgba(255,77,79,.15); color: var(--up); }
+  .detail { margin-top: 8px; font-size: 13px; color: #c3c7cf; line-height: 1.5; }
+  .big { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .empty { text-align: center; color: var(--muted); padding: 48px 0; font-size: 15px; }
+  .err { background: rgba(255,77,79,.1); border: 1px solid rgba(255,77,79,.3); color: #ffb3b3;
+    border-radius: 10px; padding: 8px 12px; font-size: 13px; margin-bottom: 12px; }
+  .legend { font-size: 12px; color: var(--muted); text-align: center; margin-top: 16px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <div><h1>📡 處置股雷達</h1><div class="updated" id="updated">載入中…</div></div>
+    <button class="refresh" onclick="load()">重新整理</button>
+  </div>
+  <nav id="tabs"></nav>
+</header>
+<main id="main"></main>
+
+<script>
+const TABS = [
+  { key: "near_disposal", label: "🔥 快進處置",
+    desc: "證交所公布的「注意累計次數異常」名單:這些股票再被列為注意股,就可能進入處置。" },
+  { key: "releasing_soon", label: "🚪 快出關",
+    desc: "處置期間只剩最後幾個交易日。出關常是籌碼重新洗牌的時點,請搭配量價與籌碼判斷。" },
+  { key: "just_released", label: "🆕 剛出關",
+    desc: "最近剛結束處置的股票,觀察出關後是續強還是回落。" },
+  { key: "in_disposal", label: "🔒 處置中",
+    desc: "目前正在處置(分盤撮合、需預收款券)或明天開始處置的股票。" },
+  { key: "attention", label: "👀 今日注意",
+    desc: "證交所今天公布的注意股與原因。" },
+];
+let DATA = null, current = localStorageGet("tab") || "near_disposal";
+
+function localStorageGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function localStorageSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function esc(s) { return String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+async function load() {
+  document.getElementById("updated").textContent = "載入中…";
+  try {
+    if (window.__DEMO_DATA__) { DATA = window.__DEMO_DATA__; }
+    else {
+      const r = await fetch("data.json?t=" + Date.now(), { cache: "no-store" });
+      DATA = await r.json();
+    }
+    document.getElementById("updated").textContent = "資料日期 " + DATA.date + " ・ 更新 " + DATA.updated;
+  } catch (e) {
+    document.getElementById("updated").textContent = "資料載入失敗,請稍後再試";
+    DATA = DATA || {};
+  }
+  render();
+}
+
+function render() {
+  document.getElementById("tabs").innerHTML = TABS.map(t =>
+    `<button class="${t.key === current ? "on" : ""}" onclick="pick('${t.key}')">${t.label}<span class="n">${(DATA[t.key] || []).length}</span></button>`
+  ).join("");
+  const tab = TABS.find(t => t.key === current);
+  const items = DATA[current] || [];
+  let html = "";
+  if (DATA.errors && DATA.errors.length) html += `<div class="err">⚠️ 部分資料抓取失敗:${esc(DATA.errors.join(";"))}</div>`;
+  html += `<div class="desc">${tab.desc}</div>`;
+  html += items.length ? items.map(card).join("") : `<div class="empty">今天沒有符合條件的股票</div>`;
+  html += `<div class="legend">點卡片可開啟個股頁面 ・ 本工具僅供提醒,非投資建議</div>`;
+  document.getElementById("main").innerHTML = html;
+}
+
+function pick(k) { current = k; localStorageSet("tab", k); render(); window.scrollTo(0, 0); }
+
+function card(x) {
+  const chg = x.chg_pct;
+  const cls = chg > 0 ? "up" : chg < 0 ? "down" : "";
+  const price = x.close != null
+    ? `<div class="price ${cls}"><div class="c">${x.close}</div><div class="p">${chg != null ? (chg > 0 ? "+" : "") + chg.toFixed(2) + "%" : ""}</div></div>` : "";
+  let tags = "";
+  if (x.watch) tags += `<span class="tag w">⭐ 觀察名單</span>`;
+  if (x.ssf) tags += `<span class="tag f">有個股期</span>`;
+  if (x.market) tags += `<span class="tag">${esc(x.market)}</span>`;
+  if (x.measure) tags += `<span class="tag ${/第二次|再次/.test(x.measure) ? "hot" : ""}">${esc(x.measure)}</span>`;
+  if (x.status === "明日開始") tags += `<span class="tag hot">明日開始</span>`;
+
+  let detail = "";
+  if (current === "near_disposal") detail = esc(x.criteria);
+  else if (current === "releasing_soon") detail = `處置 ${x.start} ~ ${x.end}<br>剩 <span class="big">${x.days_left}</span> 個交易日出關`;
+  else if (current === "just_released") detail = `處置 ${x.start} ~ ${x.end}<br>已出關 <span class="big">${x.days_since}</span> 個交易日`;
+  else if (current === "in_disposal") detail = `處置 ${x.start} ~ ${x.end}(${esc(x.reason)})<br>${x.status === "明日開始" ? "共" : "剩"} ${x.days_left} 個交易日`;
+  else if (current === "attention") detail = esc(x.info);
+
+  const url = `https://tw.stock.yahoo.com/quote/${encodeURIComponent(x.code)}`;
+  return `<a class="card ${x.watch ? "watch" : ""}" href="${url}" target="_blank" rel="noopener">
+    <div class="row"><div><span class="code">${esc(x.code)}</span><span class="name">${esc(x.name)}</span></div>${price}</div>
+    <div class="tags">${tags}</div>
+    <div class="detail">${detail}</div></a>`;
+}
+
+load();
+</script>
+</body>
+</html>
