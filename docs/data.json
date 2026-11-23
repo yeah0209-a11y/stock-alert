@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-24 00:20",
+ "updated": "2026-11-24 02:53",
  "date": "2026-11-24",
  "near_disposal": [
   {
@@ -10,7 +10,8 @@
    "close": 101.5,
    "chg_pct": -8.97,
    "watch": false,
-   "ssf": true
+   "ssf": true,
+   "small": null
   },
   {
    "code": "3653",
@@ -20,7 +21,8 @@
    "close": 3705.0,
    "chg_pct": -9.96,
    "watch": false,
-   "ssf": true
+   "ssf": true,
+   "small": "RGF"
   },
   {
    "code": "3167",
@@ -30,7 +32,8 @@
    "close": 509.0,
    "chg_pct": -9.91,
    "watch": false,
-   "ssf": false
+   "ssf": false,
+   "small": null
   },
   {
    "code": "4526",
@@ -40,7 +43,8 @@
    "close": 35.45,
    "chg_pct": -9.91,
    "watch": false,
-   "ssf": false
+   "ssf": false,
+   "small": null
   },
   {
    "code": "4566",
@@ -50,7 +54,8 @@
    "close": 49.25,
    "chg_pct": -8.46,
    "watch": false,
-   "ssf": false
+   "ssf": false,
+   "small": null
   },
   {
    "code": "4927",
@@ -60,7 +65,8 @@
    "close": 36.95,
    "chg_pct": -9.99,
    "watch": false,
-   "ssf": false
+   "ssf": false,
+   "small": null
   },
   {
    "code": "6451",
@@ -70,7 +76,8 @@
    "close": 188.0,
    "chg_pct": -9.83,
    "watch": false,
-   "ssf": false
+   "ssf": false,
+   "small": null
   },
   {
    "code": "6715",
@@ -80,7 +87,8 @@
    "close": 285.0,
    "chg_pct": -5.0,
    "watch": false,
-   "ssf": false
+   "ssf": false,
+   "small": null
   },
   {
    "code": "8021",
@@ -90,7 +98,8 @@
    "close": 247.5,
    "chg_pct": -9.84,
    "watch": false,
-   "ssf": false
+   "ssf": false,
+   "small": null
   },
   {
    "code": "8996",
@@ -100,7 +109,8 @@
    "close": 923.0,
    "chg_pct": -9.95,
    "watch": false,
-   "ssf": false
+   "ssf": false,
+   "small": null
   }
  ],
  "in_disposal": [
@@ -113,10 +123,11 @@
    "end": "2026-11-30",
    "reason": "",
    "measure": "第一次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 1390.0,
+   "chg_pct": 1.83,
    "watch": false,
    "ssf": true,
+   "small": null,
    "days_left": 5,
    "status": "處置中"
   },
@@ -133,6 +144,7 @@
    "chg_pct": -9.9,
    "watch": false,
    "ssf": true,
+   "small": null,
    "days_left": 4,
    "status": "處置中"
   },
@@ -145,10 +157,11 @@
    "end": "2026-11-30",
    "reason": "",
    "measure": "第一次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 65.8,
+   "chg_pct": -1.05,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 5,
    "status": "處置中"
   },
@@ -165,6 +178,7 @@
    "chg_pct": -9.44,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 4,
    "status": "處置中"
   },
@@ -177,10 +191,11 @@
    "end": "2026-11-30",
    "reason": "",
    "measure": "第一次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 48.5,
+   "chg_pct": 0.1,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 5,
    "status": "處置中"
   },
@@ -193,10 +208,11 @@
    "end": "2026-11-26",
    "reason": "",
    "measure": "再次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 40.8,
+   "chg_pct": -6.53,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 3,
    "status": "處置中"
   },
@@ -209,10 +225,11 @@
    "end": "2026-11-30",
    "reason": "",
    "measure": "再次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 27.35,
+   "chg_pct": -2.15,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 5,
    "status": "處置中"
   },
@@ -225,10 +242,11 @@
    "end": "2026-11-30",
    "reason": "",
    "measure": "第一次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 247.5,
+   "chg_pct": -3.51,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 5,
    "status": "處置中"
   },
@@ -241,10 +259,11 @@
    "end": "2026-11-25",
    "reason": "",
    "measure": "再次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 125.5,
+   "chg_pct": -6.34,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 2,
    "status": "處置中"
   },
@@ -257,10 +276,11 @@
    "end": "2026-11-27",
    "reason": "",
    "measure": "第一次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 1260.0,
+   "chg_pct": 2.86,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 4,
    "status": "處置中"
   },
@@ -273,10 +293,11 @@
    "end": "2026-11-24",
    "reason": "",
    "measure": "再次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 65.8,
+   "chg_pct": 2.81,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 1,
    "status": "處置中"
   },
@@ -289,10 +310,11 @@
    "end": "2026-11-26",
    "reason": "",
    "measure": "第一次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 19.5,
+   "chg_pct": -2.5,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 3,
    "status": "處置中"
   },
@@ -305,10 +327,11 @@
    "end": "2026-11-27",
    "reason": "",
    "measure": "再次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 75.2,
+   "chg_pct": -9.94,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 4,
    "status": "處置中"
   },
@@ -321,10 +344,11 @@
    "end": "2026-11-24",
    "reason": "",
    "measure": "第一次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 27.5,
+   "chg_pct": -7.09,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 1,
    "status": "處置中"
   },
@@ -337,10 +361,11 @@
    "end": "2026-11-27",
    "reason": "",
    "measure": "第一次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 185.5,
+   "chg_pct": 1.37,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 4,
    "status": "處置中"
   },
@@ -353,10 +378,11 @@
    "end": "2026-11-26",
    "reason": "",
    "measure": "第一次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 53.1,
+   "chg_pct": -10.0,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 3,
    "status": "處置中"
   },
@@ -369,10 +395,11 @@
    "end": "2026-11-27",
    "reason": "",
    "measure": "第一次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 48.5,
+   "chg_pct": 3.85,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 4,
    "status": "處置中"
   },
@@ -389,6 +416,7 @@
    "chg_pct": -9.94,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 3,
    "status": "處置中"
   },
@@ -401,10 +429,11 @@
    "end": "2026-11-24",
    "reason": "",
    "measure": "第一次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 465.0,
+   "chg_pct": 0.65,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 1,
    "status": "處置中"
   },
@@ -417,10 +446,11 @@
    "end": "2026-11-30",
    "reason": "",
    "measure": "第一次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 1580.0,
+   "chg_pct": -6.51,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 5,
    "status": "處置中"
   },
@@ -433,10 +463,11 @@
    "end": "2026-11-30",
    "reason": "",
    "measure": "第一次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 78.0,
+   "chg_pct": 0.39,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 5,
    "status": "處置中"
   },
@@ -453,6 +484,7 @@
    "chg_pct": null,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 1,
    "status": "處置中"
   }
@@ -467,10 +499,11 @@
    "end": "2026-11-24",
    "reason": "",
    "measure": "再次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 65.8,
+   "chg_pct": 2.81,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 1,
    "status": "處置中"
   },
@@ -483,10 +516,11 @@
    "end": "2026-11-24",
    "reason": "",
    "measure": "第一次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 27.5,
+   "chg_pct": -7.09,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 1,
    "status": "處置中"
   },
@@ -499,10 +533,11 @@
    "end": "2026-11-24",
    "reason": "",
    "measure": "第一次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 465.0,
+   "chg_pct": 0.65,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 1,
    "status": "處置中"
   },
@@ -519,6 +554,7 @@
    "chg_pct": null,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 1,
    "status": "處置中"
   },
@@ -531,10 +567,11 @@
    "end": "2026-11-25",
    "reason": "",
    "measure": "再次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 125.5,
+   "chg_pct": -6.34,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_left": 2,
    "status": "處置中"
   }
@@ -553,6 +590,7 @@
    "chg_pct": -4.21,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_since": 1
   },
   {
@@ -568,6 +606,7 @@
    "chg_pct": -9.93,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_since": 1
   },
   {
@@ -579,14 +618,146 @@
    "end": "2026-11-23",
    "reason": "",
    "measure": "再次處置",
-   "close": null,
-   "chg_pct": null,
+   "close": 71.0,
+   "chg_pct": -4.7,
    "watch": false,
    "ssf": false,
+   "small": null,
    "days_since": 1
   }
  ],
  "attention": [],
+ "signals": [],
+ "holdings": [],
+ "levels": {
+  "1569": {
+   "close": 65.8,
+   "ma20": 87.55,
+   "stop_next": 82.59,
+   "release": "2026-12-01"
+  },
+  "2305": {
+   "close": 26.85,
+   "ma20": 42.0,
+   "stop_next": 39.37,
+   "release": "2026-11-30"
+  },
+  "3081": {
+   "close": 1390.0,
+   "ma20": 2019.0,
+   "stop_next": 1889.03,
+   "release": "2026-12-01"
+  },
+  "3162": {
+   "close": 48.5,
+   "ma20": 68.37,
+   "stop_next": 64.48,
+   "release": "2026-12-01"
+  },
+  "3287": {
+   "close": 40.8,
+   "ma20": 62.65,
+   "stop_next": 59.45,
+   "release": "2026-11-27"
+  },
+  "3354": {
+   "close": 27.35,
+   "ma20": 41.02,
+   "stop_next": 38.41,
+   "release": "2026-12-01"
+  },
+  "3363": {
+   "close": 247.5,
+   "ma20": 388.32,
+   "stop_next": 362.4,
+   "release": "2026-12-01"
+  },
+  "3441": {
+   "close": 125.5,
+   "ma20": 169.43,
+   "stop_next": 159.21,
+   "release": "2026-11-26"
+  },
+  "3491": {
+   "close": 1260.0,
+   "ma20": 1311.5,
+   "stop_next": 1244.48,
+   "release": "2026-11-30"
+  },
+  "3532": {
+   "close": 186.5,
+   "ma20": 293.57,
+   "stop_next": 272.46,
+   "release": "2026-11-30"
+  },
+  "4174": {
+   "close": 65.8,
+   "ma20": 57.13,
+   "stop_next": 54.44,
+   "release": "2026-11-25"
+  },
+  "4534": {
+   "close": 19.5,
+   "ma20": 31.77,
+   "stop_next": 29.84,
+   "release": "2026-11-27"
+  },
+  "4577": {
+   "close": 75.2,
+   "ma20": 116.67,
+   "stop_next": 110.65,
+   "release": "2026-11-30"
+  },
+  "6140": {
+   "close": 27.5,
+   "ma20": 25.97,
+   "stop_next": 24.78,
+   "release": "2026-11-25"
+  },
+  "6538": {
+   "close": 185.5,
+   "ma20": 271.95,
+   "stop_next": 256.62,
+   "release": "2026-11-30"
+  },
+  "6697": {
+   "close": 53.1,
+   "ma20": 62.84,
+   "stop_next": 60.16,
+   "release": "2026-11-27"
+  },
+  "7584": {
+   "close": 48.5,
+   "ma20": 33.81,
+   "stop_next": 32.19,
+   "release": "2026-11-30"
+  },
+  "7610": {
+   "close": 725.0,
+   "ma20": 1127.45,
+   "stop_next": 1057.67,
+   "release": "2026-11-27"
+  },
+  "7717": {
+   "close": 465.0,
+   "ma20": 434.55,
+   "stop_next": 411.57,
+   "release": "2026-11-25"
+  },
+  "7856": {
+   "close": 1580.0,
+   "ma20": 2601.75,
+   "stop_next": 2428.61,
+   "release": "2026-12-01"
+  },
+  "8042": {
+   "close": 78.0,
+   "ma20": 118.89,
+   "stop_next": 111.95,
+   "release": "2026-12-01"
+  }
+ },
+ "max_positions": 10,
  "errors": [],
  "settings": {
   "release_soon_days": 2,
