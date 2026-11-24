@@ -1,0 +1,27 @@
+# 下載回測原始資料(股價、個股期清單)存到 backtest/cache
+name: 回測資料下載
+on:
+  push:
+    branches: [backtest]
+    paths: ["backtest/dump_data.py", ".github/workflows/dump.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install requests pandas yfinance
+      - run: python backtest/dump_data.py 2>&1 | tee backtest/results/dump.log
+      - name: 存回
+        if: always()
+        run: |
+          git config user.name "stock-alert-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -f backtest/cache backtest/results/dump.log
+          git diff --cached --quiet || git commit -m "回測原始資料 $(date -u +%F)"
+          git pull --rebase && git push
