@@ -71,6 +71,7 @@ ROOT = Path(__file__).resolve().parent
 DATA_JSON = ROOT / "docs" / "data.json"       # 給手機 App 讀
 HISTORY_JSON = ROOT / "data" / "history.json"  # 累積的處置紀錄(用來算剛出關)
 HOLDINGS_JSON = ROOT / "data" / "holdings.json"  # 你在 App 按「我有買」的持股
+PAST_JSON = ROOT / "data" / "past_episodes.json"  # 2026/06 以來的處置紀錄(判斷累犯用)
 INST_JSON = ROOT / "data" / "inst_cache.json"    # 最近幾天的三大法人買賣超
 CHIP_JSON = ROOT / "data" / "chip_cache.json"    # 融資餘額、集保大戶持股(累積才看得到變化)
 
@@ -281,7 +282,7 @@ def load_history_prices(codes, today, official):
         return {}
     syms = {}
     for code, market in codes.items():
-        syms[code] = f"{code}.TW" if market == "上市" else f"{code}.TWO"
+        syms[code] = "^TWII" if code == "TWII" else (f"{code}.TW" if market == "上市" else f"{code}.TWO")
     out = {}
     try:
         raw = yf.download(list(syms.values()), period="8mo", interval="1d", group_by="ticker",
@@ -299,7 +300,8 @@ def load_history_prices(codes, today, official):
                 ts = pd.Timestamp(today)
                 d.loc[ts] = [o["open"], o["high"], o["low"], o["close"], o.get("volume") or 0]
                 d = d.sort_index()
-            d = d[d["Volume"] > 0]
+            if code != "TWII":
+                d = d[d["Volume"] > 0]
             if len(d) > 30:
                 out[code] = d
         except Exception:  # noqa: BLE001
@@ -483,7 +485,7 @@ def build(today: date):
     for d in load_twse_disposal() + load_tpex_disposal(today):
         hist["disposals"][f"{d['code']}_{d['start']}"] = d
     # 刪掉 60 天前就結束的舊紀錄,避免檔案越來越大
-    cutoff = today - timedelta(days=60)
+    cutoff = today - timedelta(days=120)   # 留 120 天,用來判斷「累犯」
     hist["disposals"] = {k: v for k, v in hist["disposals"].items()
                          if date.fromisoformat(v["end"]) >= cutoff}
 
@@ -524,15 +526,29 @@ def build(today: date):
     if ENABLE_SIGNALS:
         import strategy as S
         cal = S.Calendar(load_holidays())
-        episodes = S.merge_episodes(list(hist["disposals"].values()), cal)
+        past = json.loads(PAST_JSON.read_text(encoding="utf-8")) if PAST_JSON.exists() else []
+        episodes = S.merge_episodes(list(hist["disposals"].values()), cal, past)
         holdings = load_holdings()
         need = {e["code"]: e["market"] for e in episodes if e["end"] >= today - timedelta(days=10)}
         for h in holdings:
             need.setdefault(h["code"], h.get("market") or "上市")
+        need["TWII"] = "上市"
         hp = load_history_prices(need, today, prices)
         inst = load_inst(cal, today)
         signaled = hist.setdefault("b_signaled", {})
-        signals, lv = S.build_signals(today, cal, episodes, hp, inst, small, signaled)
+        signals, lv = S.build_signals(today, cal, episodes, hp, inst, small, signaled, ssf, hp.get("TWII"))
+        # 處置中/快出關卡片:第幾天、初犯/累犯、明天在處置統計表的哪一列
+        epmap = {e["code"]: e for e in episodes if e["start"] <= cal.next(today) and today <= e["release"]}
+        n1 = cal.next(today)
+        for lst in (in_disposal, releasing):
+            for x in lst:
+                e = epmap.get(x["code"])
+                if e:
+                    x["recid"] = e["recid"]
+                    x["total_days"] = e["total_days"]
+                    x["day_no"] = cal.count(e["start"], today) if today >= e["start"] else 0
+                    x["tomorrow_label"] = S.day_label(e, n1, cal)
+                    x["regime"] = "新制(5天)" if e["new_regime"] else "舊制(10天)"
         holdings_st = [S.holding_status(h, today, cal, episodes, hp) for h in holdings]
         holdings_st.sort(key=lambda x: (x["level"] != "red", x["code"]))
         held = {h["code"] for h in holdings}

@@ -80,6 +80,17 @@
   .sheet input { width: 100%; font-size: 17px; padding: 10px; border-radius: 10px; border: 1px solid var(--line);
     background: var(--bg); color: var(--text); }
   .gear { background: none; border: 0; font-size: 18px; margin-left: 6px; }
+  .stars { color: var(--accent); font-size: 13px; letter-spacing: 1px; }
+  .bt { margin-top: 6px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .seg { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 2px 10px; }
+  .seg button { background: var(--chip); color: var(--muted); border: 0; border-radius: 8px; padding: 6px 10px; font-size: 13px; }
+  .seg button.on { background: var(--accent); color: #111; font-weight: 600; }
+  table.st { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  table.st th, table.st td { padding: 7px 4px; border-bottom: 1px solid var(--line); text-align: right; }
+  table.st th:first-child, table.st td:first-child { text-align: left; }
+  table.st th { color: var(--muted); font-weight: 500; }
+  table.st tr.hl td { background: rgba(245,166,35,.08); }
+  .bar { display: inline-block; height: 6px; border-radius: 3px; vertical-align: middle; margin-left: 4px; }
 </style>
 </head>
 <body>
@@ -96,7 +107,9 @@
 <script>
 const TABS = [
   { key: "ops", label: "📋 今日操作",
-    desc: "依優先順序:🔴 先處理要出場的持股,再看 🟢 明天可進場的訊號。S=小型個股期、A=現股做法二、B=現股做法一。" },
+    desc: "依優先順序:🔴 先處理要出場的持股,再看 🟢 明天可進場的訊號。S=小型個股期、A=現股做法四(處置首日買)、B=現股做法一(出關前低接)。★ = 勝率分數(有個股期/法人買超/累犯/第二次處置/上市/處置中量縮,每項 1 顆)。" },
+  { key: "stats", label: "📊 處置統計",
+    desc: "仿處置神器的三大指標:每個處置階段的平均漲跌幅、紅K機率(收盤>開盤)、開收差幅(收盤比開盤)。2024/01~2026/11 上市櫃處置股。" },
   { key: "near_disposal", label: "🔥 快進處置",
     desc: "證交所公布的「注意累計次數異常」名單:這些股票再被列為注意股,就可能進入處置。" },
   { key: "releasing_soon", label: "🚪 快出關",
@@ -111,6 +124,8 @@ const TABS = [
 let DATA = null, current = localStorageGet("tab") || "ops";
 let HOLD = null, HOLD_SHA = null, CLOSED_SHA = null;   // 從 GitHub 讀到的持股
 let RT = null;   // 盤中即時檢查結果
+let STATS = null;  // 回測統計(stats.json)
+let ST_REG = localStorageGet("st_reg") || "新制(5天)", ST_GRP = localStorageGet("st_grp") || "全部";
 const OWNER = location.hostname.endsWith("github.io") ? location.hostname.split(".")[0] : "yeah0209-a11y";
 const REPO = (location.pathname.split("/").filter(Boolean)[0]) || "stock-alert";
 
@@ -129,6 +144,7 @@ async function load() {
     document.getElementById("updated").textContent = "資料日期 " + DATA.date + " ・ 更新 " + DATA.updated;
     await loadHoldings();
     try { const r2 = await fetch("realtime.json?t=" + Date.now(), { cache: "no-store" }); RT = r2.ok ? await r2.json() : null; } catch (e) { RT = null; }
+    if (!STATS) { try { const r3 = await fetch("stats.json?t=" + Date.now(), { cache: "no-store" }); STATS = r3.ok ? await r3.json() : null; } catch (e) { STATS = null; } }
   } catch (e) {
     document.getElementById("updated").textContent = "資料載入失敗,請稍後再試";
     DATA = DATA || {};
@@ -137,12 +153,13 @@ async function load() {
 }
 
 function render() {
-  const count = k => k === "ops" ? (DATA.signals || []).length : (DATA[k] || []).length;
+  const count = k => k === "ops" ? (DATA.signals || []).length : k === "stats" ? "" : (DATA[k] || []).length;
   document.getElementById("tabs").innerHTML = TABS.map(t =>
     `<button class="${t.key === current ? "on" : ""}" onclick="pick('${t.key}')">${t.label}<span class="n">${count(t.key)}</span></button>`
   ).join("");
-  const tab = TABS.find(t => t.key === current);
+  const tab = TABS.find(t => t.key === current) || TABS[0];
   if (current === "ops") { document.getElementById("main").innerHTML = renderOps(tab); return; }
+  if (current === "stats") { document.getElementById("main").innerHTML = renderStats(tab); return; }
   const items = DATA[current] || [];
   let html = "";
   if (DATA.errors && DATA.errors.length) html += `<div class="err">⚠️ 部分資料抓取失敗:${esc(DATA.errors.join(";"))}</div>`;
@@ -165,12 +182,13 @@ function card(x) {
   if (x.market) tags += `<span class="tag">${esc(x.market)}</span>`;
   if (x.measure) tags += `<span class="tag ${/第二次|再次/.test(x.measure) ? "hot" : ""}">${esc(x.measure)}</span>`;
   if (x.status === "明日開始") tags += `<span class="tag hot">明日開始</span>`;
+  if (x.recid != null) tags += `<span class="tag ${x.recid ? "hot" : ""}">${x.recid ? "累犯" : "初犯"}</span>`;
 
   let detail = "";
   if (current === "near_disposal") detail = esc(x.criteria);
-  else if (current === "releasing_soon") detail = `處置 ${x.start} ~ ${x.end}<br>剩 <span class="big">${x.days_left}</span> 個交易日出關`;
+  else if (current === "releasing_soon") detail = `處置 ${x.start} ~ ${x.end}<br>剩 <span class="big">${x.days_left}</span> 個交易日出關` + dayStatLine(x);
   else if (current === "just_released") detail = `處置 ${x.start} ~ ${x.end}<br>已出關 <span class="big">${x.days_since}</span> 個交易日`;
-  else if (current === "in_disposal") detail = `處置 ${x.start} ~ ${x.end}(${esc(x.reason)})<br>${x.status === "明日開始" ? "共" : "剩"} ${x.days_left} 個交易日`;
+  else if (current === "in_disposal") detail = `處置 ${x.start} ~ ${x.end}(${esc(x.reason)})<br>${x.status === "明日開始" ? "共" : "剩"} ${x.days_left} 個交易日${x.day_no ? `(第 ${x.day_no} / ${x.total_days} 天)` : ""}` + dayStatLine(x);
   else if (current === "attention") detail = esc(x.info);
 
   const url = `https://tw.stock.yahoo.com/quote/${encodeURIComponent(x.code)}`;
@@ -178,6 +196,73 @@ function card(x) {
     <div class="row"><div><span class="code">${esc(x.code)}</span><span class="name">${esc(x.name)}</span></div>${price}</div>
     <div class="tags">${tags}</div>
     <div class="detail">${detail}</div></a>`;
+}
+
+// ======================================================================
+// 處置統計(仿處置神器三大指標)
+// ======================================================================
+function statRows(reg, grp) { return (((STATS || {}).days || {})[reg] || {})[grp] || []; }
+function pct(v, d = 2) { return v == null ? "-" : (v > 0 ? "+" : "") + Number(v).toFixed(d) + "%"; }
+function dayStatLine(x) {
+  if (!STATS || !x.tomorrow_label) return "";
+  const grp = x.recid ? "累犯" : "初犯";
+  const r = statRows(x.regime || "新制(5天)", grp).find(o => o.day === x.tomorrow_label);
+  if (!r) return "";
+  return `<div class="bt">📊 明天=${esc(x.tomorrow_label)}(${esc(grp)}歷史 ${r.n} 筆):平均 ${pct(r.chg)}、紅K ${r.red}%、開收差 ${pct(r.oc)}</div>`;
+}
+function setSt(k, v) { if (k === "reg") { ST_REG = v; localStorageSet("st_reg", v); } else { ST_GRP = v; localStorageSet("st_grp", v); } render(); }
+function renderStats(tab) {
+  let html = `<div class="desc">${tab.desc}</div>`;
+  if (!STATS) return html + `<div class="empty">統計資料載入失敗</div>`;
+  html += `<div class="seg">${["新制(5天)", "舊制(10天)"].map(v => `<button class="${v === ST_REG ? "on" : ""}" onclick="setSt('reg','${v}')">${v}</button>`).join("")}</div>`;
+  html += `<div class="seg">${["全部", "初犯", "累犯", "第一次", "第二次", "有個股期"].map(v => `<button class="${v === ST_GRP ? "on" : ""}" onclick="setSt('grp','${v}')">${v}</button>`).join("")}</div>`;
+  const rows = statRows(ST_REG, ST_GRP);
+  html += `<div class="card op"><table class="st"><tr><th>階段</th><th>筆數</th><th>平均漲跌</th><th>紅K機率</th><th>開收差</th></tr>`;
+  rows.forEach(r => {
+    const c = r.chg > 0 ? "up" : r.chg < 0 ? "down" : "";
+    const hl = ["處置最後一天", "出關日", "出關後第1天"].includes(r.day) ? "hl" : "";
+    html += `<tr class="${hl}"><td>${esc(r.day)}</td><td>${r.n}</td><td class="${c}">${pct(r.chg)}</td>
+      <td>${r.red}%<span class="bar" style="width:${Math.round(r.red * 0.4)}px;background:${r.red >= 50 ? "var(--up)" : "var(--down)"}"></span></td>
+      <td class="${r.oc > 0 ? "up" : r.oc < 0 ? "down" : ""}">${pct(r.oc)}</td></tr>`;
+  });
+  html += `</table></div>`;
+  html += `<div class="note" style="margin:0 4px 10px">怎麼看:紅K機率 >50% 代表那天多半收紅;出關日、出關後第1天平均收黑、開收差為負 = 「開高走低」,這就是做法三放空的依據。累犯 = 上次出關 90 天內又被處置。</div>`;
+  html += `<h2>各做法回測(扣手續費、稅、滑價)</h2>`;
+  const S = STATS.strategies || {};
+  const line = (name, o) => {
+    if (!o) return "";
+    return `<tr><td>${esc(name)}</td>` + ["2024-25", "2026舊制", "新制"].map(p => { const v = o[p];
+      return v ? `<td>${v.win}%<br><span class="${v.avg > 0 ? "up" : "down"}">${pct(v.avg)}</span><br><span style="color:var(--muted)">${v.n}筆</span></td>` : "<td>-</td>"; }).join("") + "</tr>";
+  };
+  html += `<div class="card op"><table class="st"><tr><th>做法</th><th>2024-25</th><th>2026舊制</th><th>新制</th></tr>`;
+  html += line("做法一 小型個股期", (S["做法一"] || {})["小型個股期"]);
+  html += line("做法一 現股 ★3+", ((S["做法一"] || {})["分數"] || {})["3+"]);
+  html += line("做法一 現股 ★0-2", mergeStats(((S["做法一"] || {})["分數"] || {})));
+  html += line("做法三 放空到出關後1天", (S["做法三"] || {})["全部"]);
+  html += line("做法四 處置首日買", (S["做法四"] || {})["全部"]);
+  html += line("做法二(停用)", (S["做法二"] || {})["全部"]);
+  html += `</table><div class="bt">每格:勝率 / 每筆平均 / 筆數。2024-25 用來調參數,2026 與新制是沒參與調參數的「樣本外」。</div></div>`;
+  html += `<div class="legend">統計產生日 ${esc(STATS.generated)} ・ 過去績效不代表未來</div>`;
+  return html;
+}
+function mergeStats(sc) {
+  const out = {};
+  ["2024-25", "2026舊制", "新制"].forEach(p => { let n = 0, w = 0, a = 0;
+    ["0", "1", "2"].forEach(k => { const v = (sc[k] || {})[p]; if (v) { n += v.n; w += v.win * v.n; a += v.avg * v.n; } });
+    if (n) out[p] = { n, win: +(w / n).toFixed(1), avg: +(a / n).toFixed(2) }; });
+  return out;
+}
+function btLine(x) {
+  if (!STATS) return "";
+  const S = STATS.strategies || {};
+  let o = null, lab = "";
+  if (x.strategy === "做法一") {
+    if (x.instrument === "小型個股期") { o = S["做法一"]["小型個股期"]; lab = "小型個股期做法一"; }
+    else { o = x.score >= 3 ? S["做法一"]["分數"]["3+"] : mergeStats(S["做法一"]["分數"]); lab = x.score >= 3 ? "現股做法一 ★3+" : "現股做法一 ★0-2"; }
+  } else if (S[x.strategy]) { o = S[x.strategy]["全部"]; lab = x.strategy; }
+  if (!o) return "";
+  const f = p => o[p] ? `${p} 勝率 ${o[p].win}%、平均 ${pct(o[p].avg)}(${o[p].n}筆)` : "";
+  return `<div class="bt">📈 回測 ${esc(lab)}:${[f("新制"), f("2026舊制"), f("2024-25")].filter(Boolean).join(";")}</div>`;
 }
 
 // ======================================================================
@@ -193,7 +278,7 @@ function myHoldings() {
     if (st[h.id]) return { ...h, ...st[h.id] };
     const lv = (DATA.levels || {})[h.code] || {};
     return { ...h, level: "yellow", alerts: ["剛新增,今晚 18:40 會開始追蹤"],
-      target: h.strategy === "做法一" ? +(h.entry_price * 1.1).toFixed(2) : null,
+      target: null,
       stop_next: h.strategy === "做法一" ? lv.stop_next : null, release: lv.release || h.release_at_buy };
   });
 }
@@ -241,11 +326,12 @@ function sigCard(x, i) {
   tags += `<span class="tag">${esc(x.market)}</span>`;
   if (x.second) tags += `<span class="tag hot">第二次處置</span>`;
   if (x.margin_x) tags += `<span class="tag">保證金 ${x.margin_x} 倍</span>`;
-  if (x.inst5 > 0) tags += `<span class="tag w">法人5日買超</span>`;
+  (x.factors || []).forEach(f => { if (!["有個股期", "上市", "第二次處置"].includes(f)) tags += `<span class="tag w">${esc(f)}</span>`; });
   if (x.held) tags += `<span class="tag w">已持有</span>`;
   if (x.full) tags += `<span class="tag hot">已滿倉,建議略過</span>`;
   return `<div class="card op ${x.held || x.full ? "held" : ""}">
-    <div class="row"><div><span class="rank">#${x.rank}</span><span class="tier ${x.tier}">${x.tier}</span><span class="code">${esc(x.code)}</span><span class="name">${esc(x.name)}</span></div>
+    <div class="row"><div><span class="rank">#${x.rank}</span><span class="tier ${x.tier}">${x.tier}</span><span class="code">${esc(x.code)}</span><span class="name">${esc(x.name)}</span>
+      ${x.score != null ? `<span class="stars">${"★".repeat(x.score)}${"☆".repeat(Math.max(0, 6 - x.score))}</span>` : ""}</div>
       <div class="price"><div class="c">${num(x.close)}</div><div class="p">${esc(x.title)}・${side}</div></div></div>
     <div class="tags">${tags}</div>
     <div class="lines">
@@ -255,6 +341,7 @@ function sigCard(x, i) {
       <div><b>出場</b>${esc(x.exit)}</div>
       ${extraLines(x)}
     </div>
+    ${btLine(x)}
     ${x.held ? "" : `<div class="btns"><button class="btn buy" onclick="openBuy(${x.rank})">我有${side === "空" ? "空" : "買"}</button></div>`}
   </div>`;
 }
@@ -270,7 +357,8 @@ function holdCard(h) {
       <div><b>進場</b>${esc(h.entry_date)} @ ${num(h.entry_price)}${h.qty ? ` × ${esc(h.qty)}` : ""}</div>
       ${h.target ? `<div><b>停利</b>${num(h.target)}(掛限價賣單)</div>` : ""}
       ${h.stop_next ? `<div><b>停損</b>明天收盤低於 ${num(h.stop_next)} 就賣</div>` : ""}
-      ${h.release ? `<div><b>出關</b>${esc(h.release)} 開盤賣出</div>` : ""}
+      ${h.exit_day ? `<div><b>出場</b>${esc(h.exit_day)} 收盤前${h.side === "short" ? "回補" : "賣出"}</div>`
+        : h.release ? `<div><b>出關</b>${esc(h.release)} 開盤賣出</div>` : ""}
       ${extraLines(h)}
     </div>
     ${(h.alerts || []).map(a => `<div class="alert">→ ${esc(a)}</div>`).join("")}
@@ -317,7 +405,8 @@ async function doBuy(rank) {
   const h = { id: x.code + "_" + Date.now(), code: x.code, name: x.name, market: x.market, strategy: x.strategy,
     instrument: x.instrument, small_contract: x.small_contract || null, side: x.side,
     entry_date: document.getElementById("f_date").value, entry_price: price,
-    qty: document.getElementById("f_qty").value || null, release_at_buy: x.release, tier: x.tier };
+    qty: document.getElementById("f_qty").value || null, release_at_buy: x.release, tier: x.tier,
+    exit_day: x.exit_day || null, score: x.score ?? null };
   try {
     await loadHoldings(true);
     HOLD.push(h);

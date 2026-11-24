@@ -62,10 +62,11 @@ def main():
         px = lot.get("last") or (qq.get("odd") or {}).get("last")
         notes = out["notes"][h["code"]]
         lv = levels.get(h["code"], {})
+        if h.get("strategy") == "做法三" and px and h.get("entry_price"):
+            lim = round(float(h["entry_price"]) * 1.05, 2)
+            if px >= lim:
+                notes.append(f"🔴 現價 {px:g} 比放空價高 5% 以上(停損線 {lim:g}),若收盤仍在上面就要回補")
         if h.get("strategy") == "做法一" and px:
-            tgt = round(float(h["entry_price"]) * 1.10, 2)
-            if px >= tgt:
-                notes.append(f"已達停利價 {tgt},確認限價單是否成交")
             stop = lv.get("stop_next")
             if stop and px < stop:
                 notes.append(f"🔴 現價 {px:g} 低於今天停損價 {stop:g},若收盤仍低於就要賣")
