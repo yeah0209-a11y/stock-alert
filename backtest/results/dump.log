@@ -1,37 +1,123 @@
-HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 4945.TWO"}}}
-$4945.TWO: possibly delisted; no timezone found
-
-2 Failed downloads:
-['6785.TWO']: OperationalError('database is locked')
-['4945.TWO']: possibly delisted; no timezone found
-40/648
-80/648
-$8420.TWO: possibly delisted; no timezone found
+0 502
+$3202.TWO: No data found, symbol may be delisted
 
 1 Failed download:
-['8420.TWO']: possibly delisted; no timezone found
-120/648
-160/648
-200/648
-240/648
-$3202.TWO: possibly delisted; no timezone found
+['3202.TWO']: No data found, symbol may be delisted
+fail 3202.TWO Cannot convert tz-naive timestamps, use tz_localize to localize
+50 502
+$7714.TWO: 1h data not available for startTime=1704330000 and endTime=1795527587. The requested range must be within the last 730 days.
 
 1 Failed download:
-['3202.TWO']: possibly delisted; no timezone found
-280/648
-320/648
-360/648
-400/648
-440/648
-$6806.TW: possibly delisted; no timezone found
+['7714.TWO']: 1h data not available for startTime=1704330000 and endTime=1795527587. The requested range must be within the last 730 days.
+$7642.TWO: 1h data not available for startTime=1703725200 and endTime=1795527596. The requested range must be within the last 730 days.
 
 1 Failed download:
-['6806.TW']: possibly delisted; no timezone found
-480/648
-520/648
-560/648
-600/648
-640/648
-648/648
-prices rows 527663 codes 643
-ssf rows 326
+['7642.TWO']: 1h data not available for startTime=1703725200 and endTime=1795527596. The requested range must be within the last 730 days.
+fail 7714.TWO Cannot convert tz-naive timestamps, use tz_localize to localize
+fail 7642.TWO Cannot convert tz-naive timestamps, use tz_localize to localize
+100 502
+$6949.TW: 1h data not available for startTime=1709859600 and endTime=1795527608. The requested range must be within the last 730 days.
+
+1 Failed download:
+['6949.TW']: 1h data not available for startTime=1709859600 and endTime=1795527608. The requested range must be within the last 730 days.
+$7703.TWO: 1h data not available for startTime=1703120400 and endTime=1795527625. The requested range must be within the last 730 days.
+
+1 Failed download:
+['7703.TWO']: 1h data not available for startTime=1703120400 and endTime=1795527625. The requested range must be within the last 730 days.
+fail 6949.TW Cannot convert tz-naive timestamps, use tz_localize to localize
+fail 7703.TWO Cannot convert tz-naive timestamps, use tz_localize to localize
+150 502
+$7728.TWO: 1h data not available for startTime=1710723600 and endTime=1795527649. The requested range must be within the last 730 days.
+
+1 Failed download:
+['7728.TWO']: 1h data not available for startTime=1710723600 and endTime=1795527649. The requested range must be within the last 730 days.
+$7751.TWO: 1h data not available for startTime=1718240400 and endTime=1795527650. The requested range must be within the last 730 days.
+
+1 Failed download:
+['7751.TWO']: 1h data not available for startTime=1718240400 and endTime=1795527650. The requested range must be within the last 730 days.
+fail 7728.TWO Cannot convert tz-naive timestamps, use tz_localize to localize
+fail 7751.TWO Cannot convert tz-naive timestamps, use tz_localize to localize
+200 502
+$7780.TW: 1h data not available for startTime=1730077200 and endTime=1795527672. The requested range must be within the last 730 days.
+
+1 Failed download:
+['7780.TW']: 1h data not available for startTime=1730077200 and endTime=1795527672. The requested range must be within the last 730 days.
+$7777.TWO: 1h data not available for startTime=1729213200 and endTime=1795527674. The requested range must be within the last 730 days.
+
+1 Failed download:
+['7777.TWO']: 1h data not available for startTime=1729213200 and endTime=1795527674. The requested range must be within the last 730 days.
+$7744.TWO: 1h data not available for startTime=1727226000 and endTime=1795527681. The requested range must be within the last 730 days.
+
+1 Failed download:
+['7744.TWO']: 1h data not available for startTime=1727226000 and endTime=1795527681. The requested range must be within the last 730 days.
+fail 7780.TW Cannot convert tz-naive timestamps, use tz_localize to localize
+fail 7777.TWO Cannot convert tz-naive timestamps, use tz_localize to localize
+fail 7744.TWO Cannot convert tz-naive timestamps, use tz_localize to localize
+250 502
+$3135.TW: 1h data not available for startTime=1725843600 and endTime=1795527709. The requested range must be within the last 730 days.
+
+1 Failed download:
+['3135.TW']: 1h data not available for startTime=1725843600 and endTime=1795527709. The requested range must be within the last 730 days.
+$7721.TW: 1h data not available for startTime=1703638800 and endTime=1795527711. The requested range must be within the last 730 days.
+
+1 Failed download:
+['7721.TW']: 1h data not available for startTime=1703638800 and endTime=1795527711. The requested range must be within the last 730 days.
+$7734.TWO: 1h data not available for startTime=1710378000 and endTime=1795527712. The requested range must be within the last 730 days.
+
+1 Failed download:
+['7734.TWO']: 1h data not available for startTime=1710378000 and endTime=1795527712. The requested range must be within the last 730 days.
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 6806.TW"}}}
+$6806.TW: No data found, symbol may be delisted
+
+1 Failed download:
+['6806.TW']: No data found, symbol may be delisted
+fail 3135.TW Cannot convert tz-naive timestamps, use tz_localize to localize
+fail 7721.TW Cannot convert tz-naive timestamps, use tz_localize to localize
+fail 7734.TWO Cannot convert tz-naive timestamps, use tz_localize to localize
+fail 6806.TW Cannot convert tz-naive timestamps, use tz_localize to localize
+300 502
+$3467.TWO: 1h data not available for startTime=1703206800 and endTime=1795527728. The requested range must be within the last 730 days.
+
+1 Failed download:
+['3467.TWO']: 1h data not available for startTime=1703206800 and endTime=1795527728. The requested range must be within the last 730 days.
+$1623.TW: 1h data not available for startTime=1716858000 and endTime=1795527739. The requested range must be within the last 730 days.
+
+1 Failed download:
+['1623.TW']: 1h data not available for startTime=1716858000 and endTime=1795527739. The requested range must be within the last 730 days.
+fail 3467.TWO Cannot convert tz-naive timestamps, use tz_localize to localize
+fail 1623.TW Cannot convert tz-naive timestamps, use tz_localize to localize
+350 502
+$7769.TW: 1h data not available for startTime=1730422800 and endTime=1795527753. The requested range must be within the last 730 days.
+
+1 Failed download:
+['7769.TW']: 1h data not available for startTime=1730422800 and endTime=1795527753. The requested range must be within the last 730 days.
+fail 7769.TW Cannot convert tz-naive timestamps, use tz_localize to localize
+400 502
+$7709.TWO: 1h data not available for startTime=1704675600 and endTime=1795527779. The requested range must be within the last 730 days.
+
+1 Failed download:
+['7709.TWO']: 1h data not available for startTime=1704675600 and endTime=1795527779. The requested range must be within the last 730 days.
+$6890.TW: 1h data not available for startTime=1718154000 and endTime=1795527789. The requested range must be within the last 730 days.
+
+1 Failed download:
+['6890.TW']: 1h data not available for startTime=1718154000 and endTime=1795527789. The requested range must be within the last 730 days.
+$7712.TWO: 1h data not available for startTime=1703638800 and endTime=1795527798. The requested range must be within the last 730 days.
+
+1 Failed download:
+['7712.TWO']: 1h data not available for startTime=1703638800 and endTime=1795527798. The requested range must be within the last 730 days.
+fail 7709.TWO Cannot convert tz-naive timestamps, use tz_localize to localize
+fail 6890.TW Cannot convert tz-naive timestamps, use tz_localize to localize
+fail 7712.TWO Cannot convert tz-naive timestamps, use tz_localize to localize
+450 502
+$6969.TW: 1h data not available for startTime=1725843600 and endTime=1795527811. The requested range must be within the last 730 days.
+
+1 Failed download:
+['6969.TW']: 1h data not available for startTime=1725843600 and endTime=1795527811. The requested range must be within the last 730 days.
+$6957.TW: 1h data not available for startTime=1719450000 and endTime=1795527825. The requested range must be within the last 730 days.
+
+1 Failed download:
+['6957.TW']: 1h data not available for startTime=1719450000 and endTime=1795527825. The requested range must be within the last 730 days.
+fail 6969.TW Cannot convert tz-naive timestamps, use tz_localize to localize
+fail 6957.TW Cannot convert tz-naive timestamps, use tz_localize to localize
+500 502
+rows 9882 codes 480
