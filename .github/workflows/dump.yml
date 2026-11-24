@@ -3,7 +3,7 @@ name: 回測資料下載
 on:
   push:
     branches: [backtest]
-    paths: ["backtest/dump_data.py", ".github/workflows/dump.yml"]
+    paths: ["backtest/dump_data.py", "backtest/dump_hourly.py", ".github/workflows/dump.yml"]
   workflow_dispatch:
 permissions:
   contents: write
@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: "3.11"}
       - run: pip install requests pandas yfinance
-      - run: python backtest/dump_data.py 2>&1 | tee backtest/results/dump.log
+      - run: python backtest/dump_hourly.py 2>&1 | tee backtest/results/dump.log
       - name: 存回
         if: always()
         run: |
