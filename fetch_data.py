@@ -56,6 +56,7 @@ COST_EXAMPLE_AMOUNT = 10000
 
 
 import json
+import time
 import os
 import re
 import sys
@@ -230,6 +231,20 @@ def load_ssf_contracts():
     from collections import defaultdict
     contracts = defaultdict(list)
     rows = get_json(TAIFEX_SSF, "taifex_ssf")
+    if not isinstance(rows, list) and not DEMO_DIR:   # 再試一次(換一般瀏覽器標頭)
+        try:
+            time.sleep(3)
+            rows = requests.get(TAIFEX_SSF, timeout=30, headers={"User-Agent": "Mozilla/5.0"}).json()
+            errors[:] = [e for e in errors if not e.startswith("taifex_ssf")]
+        except Exception:  # noqa: BLE001
+            pass
+    cache = ROOT / "data" / "ssf_cache.json"   # 期交所偶爾連不上 → 用上次成功的清單
+    if isinstance(rows, list) and len(rows) > 50:
+        if not DEMO_DIR:
+            cache.write_text(json.dumps(rows, ensure_ascii=False), encoding="utf-8")
+    elif cache.exists():
+        rows = json.loads(cache.read_text(encoding="utf-8"))
+        print("期交所個股期清單抓取失敗,改用上次的快取", flush=True)
     if isinstance(rows, list):
         for r in rows:
             if isinstance(r, dict) and re.fullmatch(r"\d{4}", str(r.get("StockCode", "")).strip()):
