@@ -1,0 +1,37 @@
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 4945.TWO"}}}
+$4945.TWO: possibly delisted; no timezone found
+
+2 Failed downloads:
+['6785.TWO']: OperationalError('database is locked')
+['4945.TWO']: possibly delisted; no timezone found
+40/648
+80/648
+$8420.TWO: possibly delisted; no timezone found
+
+1 Failed download:
+['8420.TWO']: possibly delisted; no timezone found
+120/648
+160/648
+200/648
+240/648
+$3202.TWO: possibly delisted; no timezone found
+
+1 Failed download:
+['3202.TWO']: possibly delisted; no timezone found
+280/648
+320/648
+360/648
+400/648
+440/648
+$6806.TW: possibly delisted; no timezone found
+
+1 Failed download:
+['6806.TW']: possibly delisted; no timezone found
+480/648
+520/648
+560/648
+600/648
+640/648
+648/648
+prices rows 527663 codes 643
+ssf rows 326
