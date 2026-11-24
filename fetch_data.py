@@ -699,7 +699,8 @@ def line_message(data):
         lines.append("今天沒有符合條件的股票。")
     lines.append("")
     lines.append("⭐=觀察名單 🅵=有個股期")
-    lines.append(APP_URL)
+    lines.append("📱 建議從主畫面的「處置雷達」圖示開 App(金鑰存在那裡)")
+    lines.append(APP_URL + "?openExternalBrowser=1")
     return "\n".join(lines)[:4900], has_signal
 
 
