@@ -4,9 +4,23 @@ name: 處置股雷達
 on:
   schedule:
     # GitHub 用的是 UTC 時間,台灣時間 = UTC + 8
-    # 週一到週五 台灣時間 18:40(證交所盤後公告之後)
-    - cron: "40 10 * * 1-5"
-  workflow_dispatch: # 允許你在 GitHub 網頁上按按鈕手動執行
+    # 週一到週五 台灣時間 18:40 起。GitHub 排程常延遲甚至漏跑,所以排多個備援時間,
+    # 當天成功跑過一次後,其他時間會自動跳過(不會重複推播)
+    - cron: "40 10 * * 1-5"   # 18:40
+    - cron: "13 11 * * 1-5"   # 19:13
+    - cron: "47 11 * * 1-5"   # 19:47
+    - cron: "23 12 * * 1-5"   # 20:23
+    - cron: "7 13 * * 1-5"    # 21:07
+    - cron: "41 13 * * 1-5"   # 21:41
+    - cron: "19 14 * * 1-5"   # 22:19
+  workflow_dispatch: # 允許你在 GitHub 網頁或 App 按按鈕手動執行
+  push:
+    branches: [main]
+    paths: [".github/workflows/daily.yml"]   # 修改排程設定時立刻跑一次
+
+concurrency:
+  group: daily
+  cancel-in-progress: false
 
 permissions:
   contents: write # 允許把更新後的資料存回儲存庫
@@ -17,23 +31,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: 今天跑過就跳過
+        id: guard
+        run: |
+          git fetch -q origin main && git checkout -q origin/main -- data/last_run.txt 2>/dev/null || true
+          T=$(TZ=Asia/Taipei date +%F); H=$(TZ=Asia/Taipei date +%H)
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            if [ "$(cat data/last_run.txt 2>/dev/null)" = "$T" ]; then echo "今天已經跑過"; echo skip=1 >> $GITHUB_OUTPUT; fi
+            if [ "$H" -lt 15 ]; then echo "排程延遲到隔天才觸發,略過"; echo skip=1 >> $GITHUB_OUTPUT; fi
+          fi
+
       - uses: actions/setup-python@v5
+        if: steps.guard.outputs.skip != '1'
         with:
           python-version: "3.11"
 
       - name: 安裝套件
+        if: steps.guard.outputs.skip != '1'
         run: pip install requests pandas numpy yfinance
 
       - name: 抓資料、計算、推播
+        if: steps.guard.outputs.skip != '1'
         env:
           LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
-        run: python fetch_data.py
+        run: |
+          python fetch_data.py
+          TZ=Asia/Taipei date +%F > data/last_run.txt
 
       - name: 存回最新資料
+        if: steps.guard.outputs.skip != '1'
         run: |
           git config user.name "stock-alert-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add docs/data.json data/history.json data/inst_cache.json data/chip_cache.json
+          git add data/last_run.txt docs/data.json data/history.json data/inst_cache.json data/chip_cache.json
           git diff --cached --quiet || git commit -m "更新資料 $(date -u +%F)"
           # App 可能剛寫入 data/holdings.json,先同步再推送
           git pull --rebase origin main
